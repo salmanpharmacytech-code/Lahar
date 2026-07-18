@@ -212,7 +212,10 @@ export async function fetchUserPosts(userId) {
 
 export async function fetchPostById(postId) {
   const { data, error } = await supabase.from("posts").select(POST_SELECT).eq("post_id", postId).single();
-  if (error) return null;
+  if (error) {
+    if (error.code === "PGRST116") return null; // post row genuinely gone
+    throw error; // transient/other error — don't let callers treat this as "deleted"
+  }
   const [withExtras] = await attachLikesAndComments([toPost(data)]);
   return withExtras;
 }

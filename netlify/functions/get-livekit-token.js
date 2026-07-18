@@ -7,9 +7,9 @@
 //
 // Frontend ye function call karega: /.netlify/functions/get-livekit-token?room=ROOM_NAME&identity=USER_ID&name=USERNAME
 
-const { AccessToken } = require("livekit-server-sdk");
+import { AccessToken } from "livekit-server-sdk";
 
-exports.handler = async function (event) {
+export const handler = async function (event) {
   try {
     const params = event.queryStringParameters || {};
     const room = params.room;

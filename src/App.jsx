@@ -611,11 +611,18 @@ function LiveDetailView({post,user,onBack,fireBurst,notify,onCloseLive,refreshFe
 
   // Live chat via Supabase Realtime (replaces 3s polling)
   useEffect(()=>{
-    (async()=>{ const fresh=await db.fetchPostById(post.postId); if(fresh) setComments(fresh.comments); })();
+    (async()=>{ try{ const fresh=await db.fetchPostById(post.postId); if(fresh) setComments(fresh.comments); }catch(e){} })();
     const unsub=db.subscribeToPostChanges(async(payload)=>{
       if(payload.table==="comments"&&payload.new?.post_id===post.postId){
-        const fresh=await db.fetchPostById(post.postId);
-        if(fresh) setComments(fresh.comments); else { onCloseLive(); onBack(); }
+        try{
+          const fresh=await db.fetchPostById(post.postId);
+          if(fresh) setComments(fresh.comments);
+        }catch(e){}
+      } else if(payload.table==="posts"&&(payload.old?.post_id===post.postId||payload.new?.post_id===post.postId)){
+        try{
+          const fresh=await db.fetchPostById(post.postId);
+          if(!fresh||!fresh.isLive){ onCloseLive(); onBack(); }
+        }catch(e){}
       }
     });
     return unsub;
