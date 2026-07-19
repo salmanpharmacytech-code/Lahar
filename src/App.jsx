@@ -1,4 +1,3 @@
-import React from "react";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Room, RoomEvent, Track, createLocalTracks } from "livekit-client";
 import * as db from "./db";
@@ -9,7 +8,7 @@ const LIVEKIT_URL = import.meta.env.VITE_LIVEKIT_URL || "wss://lahar-40sq54fh.li
 
 async function fetchLiveKitToken({ room, identity, name, canPublish }) {
   const params = new URLSearchParams({ room, identity, name, canPublish: canPublish ? "true" : "false" });
-  const res = await fetch(`/.netlify/functions/get-livekit-token?${params.toString()}`);
+  const res = await fetch(`/api/get-livekit-token?${params.toString()}`);
   if (!res.ok) throw new Error("Token nahi mil saka");
   const data = await res.json();
   return data.token;
@@ -612,18 +611,11 @@ function LiveDetailView({post,user,onBack,fireBurst,notify,onCloseLive,refreshFe
 
   // Live chat via Supabase Realtime (replaces 3s polling)
   useEffect(()=>{
-    (async()=>{ try{ const fresh=await db.fetchPostById(post.postId); if(fresh) setComments(fresh.comments); }catch(e){} })();
+    (async()=>{ const fresh=await db.fetchPostById(post.postId); if(fresh) setComments(fresh.comments); })();
     const unsub=db.subscribeToPostChanges(async(payload)=>{
       if(payload.table==="comments"&&payload.new?.post_id===post.postId){
-        try{
-          const fresh=await db.fetchPostById(post.postId);
-          if(fresh) setComments(fresh.comments);
-        }catch(e){}
-      } else if(payload.table==="posts"&&(payload.old?.post_id===post.postId||payload.new?.post_id===post.postId)){
-        try{
-          const fresh=await db.fetchPostById(post.postId);
-          if(!fresh||!fresh.isLive){ onCloseLive(); onBack(); }
-        }catch(e){}
+        const fresh=await db.fetchPostById(post.postId);
+        if(fresh) setComments(fresh.comments); else { onCloseLive(); onBack(); }
       }
     });
     return unsub;
@@ -1176,7 +1168,6 @@ function AdminPanel({onExit,notify}){
 // ── Main App Shell ─────────────────────────────────────────────────────────────
 export default function App(){
   const [session,setSession]=useState(undefined); // undefined = loading, null = logged out
-  const [authError,setAuthError]=useState(null);
   const [user,setUser]=useState(null);
   const [tab,setTab]=useState("home");
   const [posts,setPosts]=useState([]);
@@ -1194,29 +1185,17 @@ export default function App(){
   // ── Bootstrapping: watch auth state ──────────────────────────────────────
   useEffect(()=>{
     let mounted=true;
-    supabase.auth.getSession()
-      .then(({data,error})=>{
-        if(!mounted) return;
-        if(error){ setAuthError(error.message); return; }
-        setSession(data.session||null);
-      })
-      .catch(e=>{ if(mounted) setAuthError(e?.message||"Supabase se connect nahi ho saka"); });
+    supabase.auth.getSession().then(({data})=>{ if(mounted) setSession(data.session||null); });
     const { data:sub } = supabase.auth.onAuthStateChange((_event,sess)=>{ if(mounted) setSession(sess); });
-    const timer=setTimeout(()=>{
-      if(mounted) setAuthError(prev=>prev||"Timeout — Supabase se 8 second mein jawab nahi mila. Internet ya env vars check karein.");
-    },8000);
-    return ()=>{ mounted=false; sub.subscription.unsubscribe(); clearTimeout(timer); };
+    return ()=>{ mounted=false; sub.subscription.unsubscribe(); };
   },[]);
 
   useEffect(()=>{
     if(session===undefined) return;
     if(session===null){ setUser(null); return; }
     (async()=>{
-      try{
-        const profile=await db.getMyProfile();
-        if(!profile){ setAuthError("Login ho gaya magar profile database mein nahi mila — signup trigger ya RLS check karein."); return; }
-        setUser(profile);
-      }catch(e){ setAuthError(e?.message||"Profile load nahi ho saka"); }
+      const profile=await db.getMyProfile();
+      setUser(profile);
     })();
   },[session]);
 
@@ -1277,16 +1256,6 @@ export default function App(){
     loadNotifications();
   }
 
-  if(authError){
-    return (
-      <div style={{minHeight:"100vh",background:"#0a0a0a",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",color:"#fafafa",padding:24,textAlign:"center",gap:12}}>
-        <div style={{fontSize:36}}>⚠️</div>
-        <p style={{fontSize:14,fontWeight:700,margin:0}}>Connect nahi ho saka</p>
-        <p style={{fontSize:12,color:"#a3a3a3",margin:0,wordBreak:"break-word",maxWidth:320}}>{authError}</p>
-        <Btn onClick={()=>{ setAuthError(null); setSession(undefined); window.location.reload(); }}>⟳ Dobara Try Karein</Btn>
-      </div>
-    );
-  }
   if(session===undefined||(session&&!user)){
     return <div style={{minHeight:"100vh",background:"#0a0a0a",display:"flex",alignItems:"center",justifyContent:"center",color:"#525252"}}>⟳ Load ho raha hai...</div>;
   }
