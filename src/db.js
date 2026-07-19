@@ -113,7 +113,7 @@ export async function suggestedUsers(excludeUserId, limit = 10) {
 // ── Friend requests / friendships ───────────────────────────────────────────
 export async function sendFriendRequest(fromId, toId) {
   const { error } = await supabase.from("friend_requests").insert({ from_id: fromId, to_id: toId });
-  if (error && error.code !== "23505") throw error;
+  if (error && error.code !== "23505") throw error; // 23505 = duplicate, treat as already-sent
   if (error && error.code === "23505") return { already: true };
   await addNotification(toId, "ne aapko friend request bheji hai");
   return { already: false };
@@ -212,10 +212,7 @@ export async function fetchUserPosts(userId) {
 
 export async function fetchPostById(postId) {
   const { data, error } = await supabase.from("posts").select(POST_SELECT).eq("post_id", postId).single();
-  if (error) {
-    if (error.code === "PGRST116") return null; // post row genuinely gone
-    throw error; // transient/other error — don't let callers treat this as "deleted"
-  }
+  if (error) return null;
   const [withExtras] = await attachLikesAndComments([toPost(data)]);
   return withExtras;
 }
@@ -279,8 +276,8 @@ export async function createLivePost({ userId, caption, roomName }) {
     .single();
   if (error) throw error;
   return toPost(data);
-}
-export async function endLivePost(postId) {
+  }
+  export async function endLivePost(postId) {
   const { error } = await supabase.from("posts").delete().eq("post_id", postId);
   if (error) throw error;
 }
@@ -360,7 +357,7 @@ export async function sendGift({ fromId, toId, postId, gift }) {
     if (error.message?.includes("INSUFFICIENT_COINS")) throw new Error("INSUFFICIENT_COINS");
     throw error;
   }
-  return data;
+  return data; // new sender balance
 }
 
 export async function createTransaction({ userId, type, amountPKR, coins, method, reference }) {
@@ -383,7 +380,7 @@ export async function requestWithdraw({ userId, coins, method, reference }) {
     if (error.message?.includes("INSUFFICIENT_COINS")) throw new Error("INSUFFICIENT_COINS");
     throw error;
   }
-  return data;
+  return data; // new transaction id
 }
 
 export async function debitCoinsForWithdraw(userId, coins) {
@@ -462,8 +459,7 @@ export async function adminRejectWithdraw(txId) {
 // ── Notifications ─────────────────────────────────────────────────────────────
 export async function addNotification(userId, body) {
   await supabase.from("notifications").insert({ user_id: userId, body });
-}
-
+    }
 export async function getNotifications(userId) {
   const { data, error } = await supabase
     .from("notifications")
