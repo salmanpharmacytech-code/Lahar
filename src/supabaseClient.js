@@ -4,6 +4,7 @@ const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 if (!SUPABASE_URL || !SUPABASE_KEY) {
+  // eslint-disable-next-line no-console
   console.error(
     "Supabase env vars missing — VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY set karein (.env ya Netlify env vars mein)."
   );
