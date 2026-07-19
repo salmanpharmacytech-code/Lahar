@@ -7,9 +7,9 @@
 //
 // Frontend ye function call karega: /api/get-livekit-token?room=ROOM_NAME&identity=USER_ID&name=USERNAME
 
-const { AccessToken } = require("livekit-server-sdk");
+import { AccessToken } from "livekit-server-sdk";
 
-module.exports = async function handler(req, res) {
+export default async function handler(req, res) {
   try {
     const { room, identity, name, canPublish } = req.query;
 
