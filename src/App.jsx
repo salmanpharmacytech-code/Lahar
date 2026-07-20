@@ -657,7 +657,9 @@ function LiveDetailView({post,user,onBack,fireBurst,notify,onCloseLive,refreshFe
           }
         }
       }catch(e){
-        notify("Live stream se connect nahi ho saka");
+        notify("ERROR: "+(e?.message||String(e)));
+      }
+
       }
     })();
     return ()=>{ room?.disconnect(); };
