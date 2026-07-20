@@ -659,10 +659,8 @@ function LiveDetailView({post,user,onBack,fireBurst,notify,onCloseLive,refreshFe
       }catch(e){
         notify("ERROR: "+(e?.message||String(e)));
       }
-
-      }
-    })();
-    return ()=>{ room?.disconnect(); };
+  })();
+  return ()=>{ room?.disconnect(); };
   },[post.roomName,isHost,user.userId,user.username]);
 
   async function sendChat(){
