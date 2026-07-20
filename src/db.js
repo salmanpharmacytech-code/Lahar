@@ -524,8 +524,9 @@ export async function fetchConversationsList(userId) {
 
 // ── Realtime subscriptions ───────────────────────────────────────────────────
 export function subscribeToPostChanges(callback) {
-  const channel = supabase
-    .channel("posts-changes")
+
+const channel = supabase
+  .channel("posts-changes-" + Math.random().toString(36).slice(2))
     .on("postgres_changes", { event: "*", schema: "public", table: "posts" }, callback)
     .on("postgres_changes", { event: "*", schema: "public", table: "likes" }, callback)
     .on("postgres_changes", { event: "*", schema: "public", table: "comments" }, callback)
