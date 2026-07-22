@@ -132,6 +132,11 @@ function GiftBurst({burst}){
       <div style={{fontWeight:800,fontSize:18,marginTop:8,background:"linear-gradient(90deg,#fcd34d,#fb7185)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>{burst.from} ne {burst.name} bheja!</div>
     </div>
   );
+}
+      {needsTap&&<div onClick={unmute} style={{marginTop:8,background:"rgba(0,0,0,.5)",color:"#fff",padding:"4px 12px",borderRadius:999,fontSize:12,pointerEvents:"auto",cursor:"pointer"}}>🔇 Awaaz ke liye tap karein</div>}
+      <div style={{fontWeight:800,fontSize:18,marginTop:8,background:"linear-gradient(90deg,#fcd34d,#fb7185)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>{burst.from} ne {burst.name} bheja!</div>
+    </div>
+  );
               }
 
 function ConfirmDialog({title,message,onConfirm,onCancel}){
