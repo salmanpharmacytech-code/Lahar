@@ -689,7 +689,7 @@ function LiveDetailView({post,user,onBack,fireBurst,notify,onCloseLive,refreshFe
   async function sendGift(gift){
     try{
       const newBal=await db.sendGift({fromId:user.userId,toId:live.userId,postId:post.postId,gift});
-      fireBurst({emoji:gift.emoji,name:gift.name,from:user.username}); setShowGift(false);
+fireBurst({emoji:gift.emoji,name:gift.name,from:user.username,file:gift.file}); setShowGift(false);
       window.dispatchEvent(new CustomEvent("lehar:balance",{detail:newBal}));
     }catch(e){ notify(e?.message==="INSUFFICIENT_COINS"?"Coins kam hain":"Gift nahi bheja ja saka"); }
   }
