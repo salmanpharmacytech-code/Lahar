@@ -1193,7 +1193,7 @@ export default function App(){
   const [notifications,setNotifications]=useState([]);
 
   const notify=useCallback((text)=>{ setToast(text); setTimeout(()=>setToast(""),2200); },[]);
-  const fireBurst=useCallback((b)=>{ setBurst({...b,key:Date.now()}); setTimeout(()=>setBurst(null),2100); },[]);
+  const fireBurst=useCallback((b)=>{ setBurst({...b,key:Date.now()}); setTimeout(()=>setBurst(null), b.file?4500:2100); },[]);
 
   // ── Bootstrapping: watch auth state ──────────────────────────────────────
   useEffect(()=>{
