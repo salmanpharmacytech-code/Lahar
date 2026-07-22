@@ -15,7 +15,7 @@ async function fetchLiveKitToken({ room, identity, name, canPublish }) {
 }
 
 // ── Icons (emoji-based, no CDN needed) ──────────────────────────────────────
- IC = {
+ const IC = {
   Home:"🏠", Radio:"📡", Film:"🎬", Search:"🔍", MessageCircle:"💬", User:"👤",
   Heart:"❤️", Gift:"🎁", Share2:"↗️", Plus:"➕", Send:"📨", Wallet:"💰",
   Star:"⭐", Bell:"🔔", ArrowLeft:"←", Upload:"⬆️", X:"✕", Check:"✓",
