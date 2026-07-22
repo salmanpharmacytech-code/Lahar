@@ -333,7 +333,7 @@ function FeedView({posts,user,refreshFeed,notify,fireBurst,onOpenLive}){
   async function handleSendGift(gift){
     try{
       const newBal=await db.sendGift({fromId:user.userId,toId:giftPost.userId,postId:giftPost.postId,gift});
-      fireBurst({emoji:gift.emoji,name:gift.name,from:user.username});
+      fireBurst({emoji:gift.emoji,name:gift.name,from:user.username,file:gift.file});
       setGiftPost(null); refreshFeed();
       window.dispatchEvent(new CustomEvent("lehar:balance",{detail:newBal}));
     }catch(e){
