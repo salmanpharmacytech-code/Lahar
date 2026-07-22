@@ -86,7 +86,17 @@ function Toast({text}){ if(!text)return null; return <div style={{position:"fixe
 
 function GiftBurst({burst}){
   if(!burst)return null;
-  return <div key={burst.key} style={{position:"fixed",inset:0,zIndex:250,display:"flex",alignItems:"center",justifyContent:"center",pointerEvents:"none"}}><div style={{textAlign:"center",animation:"giftPop 2.1s ease-out forwards"}}><div style={{fontSize:64}}>{burst.emoji}</div><div style={{fontWeight:800,fontSize:18,background:"linear-gradient(90deg,#fcd34d,#fb7185)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>{burst.from} ne {burst.name} bheja!</div></div></div>;
+  const mediaUrl=giftMediaUrl(burst.file);
+  return (
+    <div key={burst.key} style={{position:"fixed",inset:0,zIndex:250,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",pointerEvents:"none"}}>
+      {mediaUrl?(
+        <video src={mediaUrl} autoPlay playsInline style={{maxWidth:"92%",maxHeight:"70%",objectFit:"contain"}}/>
+      ):(
+        <div style={{fontSize:64,animation:"giftPop 2.1s ease-out forwards"}}>{burst.emoji}</div>
+      )}
+      <div style={{fontWeight:800,fontSize:18,marginTop:8,background:"linear-gradient(90deg,#fcd34d,#fb7185)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>{burst.from} ne {burst.name} bheja!</div>
+    </div>
+  );
 }
 
 function ConfirmDialog({title,message,onConfirm,onCancel}){
