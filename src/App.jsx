@@ -32,16 +32,19 @@ const OWNER_PAYMENT = { Easypaisa:"03478946876", JazzCash:"03127847503", SadaPay
 const TOPUP_COINS_PER_PKR = 1/20;
 const WITHDRAW_COINS_PER_PKR = 1/12;
 const MIN_TOPUP_PKR = 3000;
+const GIFT_STORAGE_URL = "https://xfmzqphclvakfhezmdie.supabase.co/storage/v1/object/public/gift-animations/";
+function giftMediaUrl(file){ return file ? `${GIFT_STORAGE_URL}${file}` : null; }
+
 const GIFTS = [
-  {id:"rose",name:"Rose",emoji:"🌹",cost:500,pkr:50},
-  {id:"kiss",name:"Kiss",emoji:"💋",cost:2000,pkr:200},
-  {id:"heart",name:"Heart",emoji:"💖",cost:5000,pkr:500},
-  {id:"crown",name:"Crown",emoji:"👑",cost:50000,pkr:5000},
-  {id:"dragon",name:"Dragon",emoji:"🐉",cost:400000,pkr:40000},
-  {id:"star",name:"Star",emoji:"⭐",cost:500000,pkr:50000},
-  {id:"diamond",name:"Diamond",emoji:"💎",cost:600000,pkr:60000},
-  {id:"lion",name:"Lion",emoji:"🦁",cost:1000000,pkr:100000},
-  {id:"gwagon",name:"G-Wagon",emoji:"🚙",cost:2000000,pkr:200000},
+  {id:"rose",name:"Rose",emoji:"🌹",cost:500,pkr:50,file:"rose.gif"},
+  {id:"kiss",name:"Kiss",emoji:"💋",cost:2000,pkr:200,file:"kiss.gif"},
+  {id:"heart",name:"Heart",emoji:"💖",cost:5000,pkr:500,file:"heart.gif"},
+  {id:"crown",name:"Crown",emoji:"👑",cost:50000,pkr:5000,file:"crown.gif"},
+  {id:"dragon",name:"Dragon",emoji:"🐉",cost:400000,pkr:40000,file:"dragon.mp4"},
+  {id:"star",name:"Star",emoji:"⭐",cost:500000,pkr:50000,file:"star.gif"},
+  {id:"universe",name:"Universe",emoji:"🌌",cost:600000,pkr:60000,file:"universe.mp4"},
+  {id:"lion",name:"Lion",emoji:"🦁",cost:1000000,pkr:100000,file:"lion.mp4"},
+  {id:"car",name:"Car",emoji:"🚙",cost:2000000,pkr:200000,file:"car.mp4"},
 ];
 const AVATAR_COLORS = ["#e11d48","#f59e0b","#7c3aed","#059669","#0284c7","#c026d3","#ea580c"];
 const REACTIONS = [
