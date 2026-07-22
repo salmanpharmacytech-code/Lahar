@@ -440,7 +440,7 @@ function ReelsView({posts,user,notify,refreshFeed,fireBurst}){
     const post=reels[current]; if(!post)return;
     try{
       const newBal=await db.sendGift({fromId:user.userId,toId:post.userId,postId:post.postId,gift});
-      fireBurst({emoji:gift.emoji,name:gift.name,from:user.username,file:gift.file});
+fireBurst({emoji:gift.emoji,name:gift.name,from:user.username,file:gift.file}); setGiftPost(null);
       window.dispatchEvent(new CustomEvent("lehar:balance",{detail:newBal}));
     }catch(e){ notify(e?.message==="INSUFFICIENT_COINS"?"Coins kam hain":"Gift nahi bheja ja saka"); }
   }
