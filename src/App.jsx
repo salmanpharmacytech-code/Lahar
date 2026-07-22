@@ -116,9 +116,9 @@ function GiftBurst({burst}){
     <div key={burst.key} style={{position:"fixed",inset:0,zIndex:250,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",pointerEvents:needsTap?"auto":"none"}}>
       {mediaUrl&&!failed?(
         isGif?(
-          <img src={mediaUrl} onError={()=>setFailed(true)} style={{maxWidth:"92%",maxHeight:"70%",objectFit:"contain"}}/>
+          <img src={mediaUrl} onError={()=>setFailed(true)} style={{maxWidth:"55%",maxHeight:"38%",objectFit:"contain"}}/>
         ):(
-          <video ref={videoRef} src={mediaUrl} playsInline preload="auto" onEnded={()=>setEnded(true)} onError={()=>setFailed(true)} onClick={needsTap?unmute:undefined} style={{maxWidth:"92%",maxHeight:"70%",objectFit:"contain"}}/>
+          <video ref={videoRef} src={mediaUrl} playsInline preload="auto" onEnded={()=>setEnded(true)} onError={()=>setFailed(true)} onClick={needsTap?unmute:undefined} style={{maxWidth:"55%",maxHeight:"38%",objectFit:"contain"}}/>
         )
       ):(
         <div style={{fontSize:64,animation:"giftPop 2.1s ease-out forwards"}}>{burst.emoji}</div>
