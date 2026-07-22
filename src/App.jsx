@@ -15,7 +15,7 @@ async function fetchLiveKitToken({ room, identity, name, canPublish }) {
 }
 
 // ── Icons (emoji-based, no CDN needed) ──────────────────────────────────────
-const IC = {
+ IC = {
   Home:"🏠", Radio:"📡", Film:"🎬", Search:"🔍", MessageCircle:"💬", User:"👤",
   Heart:"❤️", Gift:"🎁", Share2:"↗️", Plus:"➕", Send:"📨", Wallet:"💰",
   Star:"⭐", Bell:"🔔", ArrowLeft:"←", Upload:"⬆️", X:"✕", Check:"✓",
@@ -93,10 +93,10 @@ function GiftBurst({burst}){
 
   useEffect(()=>{
     setEnded(false); setFailed(false); setNeedsTap(false);
-    if(burst&&isGif){
-      const t=setTimeout(()=>setEnded(true),3000);
-      return ()=>clearTimeout(t);
-    }
+    if(!burst) return;
+    const minTime=isGif?3000:1500;
+    const t=setTimeout(()=>setEnded(true), isGif?3000:15000);
+    return ()=>clearTimeout(t);
   },[burst?.key]);
 
   useEffect(()=>{
@@ -111,14 +111,19 @@ function GiftBurst({burst}){
   if(!burst||ended) return null;
   const mediaUrl=giftMediaUrl(burst.file);
   function unmute(){ if(videoRef.current){ videoRef.current.muted=false; setNeedsTap(false); } }
+  function handleEnded(){
+    const v=videoRef.current;
+    if(v&&v.currentTime<2){ v.currentTime=0; v.play().catch(()=>{}); return; }
+    setEnded(true);
+  }
 
   return (
     <div key={burst.key} style={{position:"fixed",inset:0,zIndex:250,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",pointerEvents:needsTap?"auto":"none"}}>
       {mediaUrl&&!failed?(
         isGif?(
-         <img key={burst.key} src={mediaUrl} onError={()=>setFailed(true)} style={{maxWidth:"55%",maxHeight:"38%",objectFit:"contain"}}/> 
+          <img key={burst.key} src={mediaUrl} onError={()=>setFailed(true)} style={{maxWidth:"55%",maxHeight:"38%",objectFit:"contain"}}/>
         ):(
-          <video key={burst.key} ref={videoRef} src={mediaUrl} playsInline preload="auto" onEnded={()=>setEnded(true)} onError={()=>setFailed(true)} onClick={needsTap?unmute:undefined} style={{maxWidth:"55%",maxHeight:"38%",objectFit:"contain"}}/>
+          <video key={burst.key} ref={videoRef} src={mediaUrl} playsInline preload="auto" onEnded={handleEnded} onError={()=>setFailed(true)} onClick={needsTap?unmute:undefined} style={{maxWidth:"55%",maxHeight:"38%",objectFit:"contain"}}/>
         )
       ):(
         <div style={{fontSize:64,animation:"giftPop 2.1s ease-out forwards"}}>{burst.emoji}</div>
@@ -127,7 +132,7 @@ function GiftBurst({burst}){
       <div style={{fontWeight:800,fontSize:18,marginTop:8,background:"linear-gradient(90deg,#fcd34d,#fb7185)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>{burst.from} ne {burst.name} bheja!</div>
     </div>
   );
-}
+              }
 
 function ConfirmDialog({title,message,onConfirm,onCancel}){
   return (
