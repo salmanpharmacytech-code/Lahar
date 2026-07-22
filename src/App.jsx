@@ -85,15 +85,45 @@ function Btn({children,onClick,disabled,style={},ghost=false}){
 function Toast({text}){ if(!text)return null; return <div style={{position:"fixed",top:16,left:"50%",transform:"translateX(-50%)",background:"#fafafa",color:"#0a0a0a",padding:"8px 18px",borderRadius:999,fontWeight:600,fontSize:13,zIndex:300,whiteSpace:"nowrap",boxShadow:"0 4px 20px rgba(0,0,0,.4)"}}>{text}</div>; }
 
 function GiftBurst({burst}){
-  if(!burst)return null;
+  const videoRef=useRef(null);
+  const [ended,setEnded]=useState(false);
+  const [failed,setFailed]=useState(false);
+  const [needsTap,setNeedsTap]=useState(false);
+  const isGif=burst?.file&&burst.file.toLowerCase().endsWith(".gif");
+
+  useEffect(()=>{
+    setEnded(false); setFailed(false); setNeedsTap(false);
+    if(burst&&isGif){
+      const t=setTimeout(()=>setEnded(true),3000);
+      return ()=>clearTimeout(t);
+    }
+  },[burst?.key]);
+
+  useEffect(()=>{
+    if(!burst||isGif) return;
+    const v=videoRef.current;
+    if(!v) return;
+    v.muted=false;
+    const p=v.play();
+    if(p&&p.catch) p.catch(()=>{ v.muted=true; setNeedsTap(true); v.play().catch(()=>{}); });
+  },[burst?.key]);
+
+  if(!burst||ended) return null;
   const mediaUrl=giftMediaUrl(burst.file);
+  function unmute(){ if(videoRef.current){ videoRef.current.muted=false; setNeedsTap(false); } }
+
   return (
-    <div key={burst.key} style={{position:"fixed",inset:0,zIndex:250,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",pointerEvents:"none"}}>
-      {mediaUrl?(
-        <video src={mediaUrl} autoPlay playsInline style={{maxWidth:"92%",maxHeight:"70%",objectFit:"contain"}}/>
+    <div key={burst.key} style={{position:"fixed",inset:0,zIndex:250,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",pointerEvents:needsTap?"auto":"none"}}>
+      {mediaUrl&&!failed?(
+        isGif?(
+          <img src={mediaUrl} onError={()=>setFailed(true)} style={{maxWidth:"92%",maxHeight:"70%",objectFit:"contain"}}/>
+        ):(
+          <video ref={videoRef} src={mediaUrl} playsInline preload="auto" onEnded={()=>setEnded(true)} onError={()=>setFailed(true)} onClick={needsTap?unmute:undefined} style={{maxWidth:"92%",maxHeight:"70%",objectFit:"contain"}}/>
+        )
       ):(
         <div style={{fontSize:64,animation:"giftPop 2.1s ease-out forwards"}}>{burst.emoji}</div>
       )}
+      {needsTap&&<div onClick={unmute} style={{marginTop:8,background:"rgba(0,0,0,.5)",color:"#fff",padding:"4px 12px",borderRadius:999,fontSize:12,pointerEvents:"auto",cursor:"pointer"}}>🔇 Awaaz ke liye tap karein</div>}
       <div style={{fontWeight:800,fontSize:18,marginTop:8,background:"linear-gradient(90deg,#fcd34d,#fb7185)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>{burst.from} ne {burst.name} bheja!</div>
     </div>
   );
