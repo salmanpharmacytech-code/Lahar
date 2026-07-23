@@ -559,3 +559,58 @@ export function subscribeToNotifications(userId, callback) {
     .subscribe();
   return () => supabase.removeChannel(channel);
 }
+// ── Live co-host (multi-host) ──────────────────────────────────────────────
+export async function sendCohostRequest(roomName, hostId, guestId) {
+  const { error } = await supabase
+    .from("live_cohost_requests")
+    .insert({ room_name: roomName, host_id: hostId, guest_id: guestId, status: "pending" });
+  if (error) throw error;
+  await addNotification(guestId, "ne aapko live me co-host banne ki request bheji hai");
+}
+
+export async function getMyCohostRequests(guestId) {
+  const { data, error } = await supabase
+    .from("live_cohost_requests")
+    .select("id, room_name, host_id, created_at, profiles:host_id(username)")
+    .eq("guest_id", guestId)
+    .eq("status", "pending")
+    .order("created_at", { ascending: false });
+  if (error) return [];
+  return data.map((r) => ({
+    id: r.id,
+    roomName: r.room_name,
+    hostId: r.host_id,
+    hostUsername: r.profiles?.username,
+    ts: new Date(r.created_at).getTime(),
+  }));
+}
+
+export async function respondCohostRequest(requestId, accept) {
+  const { error } = await supabase
+    .from("live_cohost_requests")
+    .update({ status: accept ? "accepted" : "declined" })
+    .eq("id", requestId);
+  if (error) throw error;
+}
+
+export async function getActiveCohosts(roomName) {
+  const { data, error } = await supabase
+    .from("live_cohost_requests")
+    .select("guest_id, profiles:guest_id(username)")
+    .eq("room_name", roomName)
+    .eq("status", "accepted");
+  if (error) return [];
+  return data.map((r) => ({ userId: r.guest_id, username: r.profiles?.username }));
+}
+
+export function subscribeToCohostRequests(guestId, callback) {
+  const channel = supabase
+    .channel(`cohost-${guestId}`)
+    .on(
+      "postgres_changes",
+      { event: "INSERT", schema: "public", table: "live_cohost_requests", filter: `guest_id=eq.${guestId}` },
+      callback
+    )
+    .subscribe();
+  return () => supabase.removeChannel(channel);
+}
