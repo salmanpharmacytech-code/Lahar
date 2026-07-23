@@ -643,21 +643,26 @@ function GoLiveView({user,onDone,notify}){
 }
 
 // ── Live Detail View ──────────────────────────────────────────────────────────
-function LiveDetailView({post,user,onBack,fireBurst,notify,onCloseLive,refreshFeed}){
+function LiveDetailView({post,posts,user,onBack,fireBurst,notify,onCloseLive,refreshFeed,onJoinCohost}){
   const [live,setLive]=useState(post);
   const [comments,setComments]=useState(post.comments||[]);
   const [text,setText]=useState("");
   const [showGift,setShowGift]=useState(false);
   const [connected,setConnected]=useState(false);
+  const [showInvite,setShowInvite]=useState(false);
+  const [cohostInfo,setCohostInfo]=useState(null);
+  const [amCohost,setAmCohost]=useState(false);
+  const [cohostChecked,setCohostChecked]=useState(false);
+  const [incomingInvite,setIncomingInvite]=useState(null);
   const chatRef=useRef(null);
-  const videoRef=useRef(null);
+  const mainVideoRef=useRef(null);
+  const guestVideoRef=useRef(null);
   const audioContainerRef=useRef(null);
   const roomRef=useRef(null);
   const isHost=user.userId===post.userId;
 
   useEffect(()=>{ chatRef.current?.scrollTo({top:chatRef.current.scrollHeight}); },[comments]);
 
-  // Live chat via Supabase Realtime (replaces 3s polling)
   useEffect(()=>{
     (async()=>{ const fresh=await db.fetchPostById(post.postId); if(fresh) setComments(fresh.comments); })();
     const unsub=db.subscribeToPostChanges(async(payload)=>{
@@ -669,47 +674,88 @@ function LiveDetailView({post,user,onBack,fireBurst,notify,onCloseLive,refreshFe
     return unsub;
   },[post.postId]);
 
-  // ── LiveKit: connect to the room, publish (host) or subscribe (viewer) ────
   useEffect(()=>{
-    if(!post.roomName) return; // purana post jiska room nahi hai
+    let mounted=true;
+    (async()=>{
+      const list=await db.getActiveCohosts(post.roomName);
+      const other=list.find(c=>c.userId!==user.userId);
+      if(mounted){ setCohostInfo(other||null); setAmCohost(list.some(c=>c.userId===user.userId)); setCohostChecked(true); }
+    })();
+    return ()=>{ mounted=false; };
+  },[post.roomName,user.userId]);
+
+  useEffect(()=>{
+    if(!isHost) return;
+    (async()=>{
+      const reqs=await db.getMyCohostRequests(user.userId);
+      if(reqs.length>0) setIncomingInvite(reqs[0]);
+    })();
+    const unsub=db.subscribeToCohostRequests(user.userId,(payload)=>{
+      setIncomingInvite({ id:payload.new.id, roomName:payload.new.room_name, hostId:payload.new.host_id, hostUsername:"" });
+    });
+    return unsub;
+  },[isHost,user.userId]);
+
+  async function acceptInvite(){
+    if(!incomingInvite) return;
+    try{
+      await db.respondCohostRequest(incomingInvite.id,true);
+      const hostPost=posts.find(p=>p.userId===incomingInvite.hostId&&p.isLive);
+      setIncomingInvite(null);
+      if(hostPost) onJoinCohost(hostPost); else notify("Host ki live nahi mili");
+    }catch(e){ notify("Accept nahi ho saka"); }
+  }
+  async function rejectInvite(){
+    if(!incomingInvite) return;
+    try{ await db.respondCohostRequest(incomingInvite.id,false); }catch(e){}
+    setIncomingInvite(null);
+  }
+  async function inviteUser(targetUserId){
+    try{
+      await db.sendCohostRequest(post.roomName,user.userId,targetUserId);
+      notify("Invite bhej di");
+      setShowInvite(false);
+    }catch(e){ notify("Invite nahi bhej saka"); }
+  }
+
+  useEffect(()=>{
+    if(!post.roomName||!cohostChecked) return;
     let room;
+    const canPublish=isHost||amCohost;
     (async()=>{
       try{
         if(!LIVEKIT_URL){ notify("LiveKit URL set nahi hai (VITE_LIVEKIT_URL env var add karein)"); return; }
-        const token=await fetchLiveKitToken({room:post.roomName,identity:user.userId,name:user.username,canPublish:isHost});
+        const token=await fetchLiveKitToken({room:post.roomName,identity:user.userId,name:user.username,canPublish});
         room=new Room();
         roomRef.current=room;
 
-        room.on(RoomEvent.TrackSubscribed,(track)=>{
-          // BUG FIX: previously only Video tracks were attached, so viewers
-          // never heard any audio from the host. Audio tracks must also be
-          // attached (to a hidden <audio> element) for sound to play.
-          if(track.kind===Track.Kind.Video && videoRef.current){
-            track.attach(videoRef.current);
-          } else if(track.kind===Track.Kind.Audio && audioContainerRef.current){
-            const el=track.attach();
-            el.autoplay=true;
-            audioContainerRef.current.appendChild(el);
+        function attachVideo(track,identity){
+          const el=identity===post.userId?mainVideoRef.current:guestVideoRef.current;
+          if(el) track.attach(el);
+        }
+
+        room.on(RoomEvent.TrackSubscribed,(track,_pub,participant)=>{
+          if(track.kind===Track.Kind.Video){ attachVideo(track,participant.identity); }
+          else if(track.kind===Track.Kind.Audio&&audioContainerRef.current){
+            const el=track.attach(); el.autoplay=true; audioContainerRef.current.appendChild(el);
           }
         });
         room.on(RoomEvent.TrackUnsubscribed,(track)=>{ track.detach().forEach(el=>el.remove?.()); });
 
-        await room.connect(LIVEKIT_URL, token);
+        await room.connect(LIVEKIT_URL,token);
         setConnected(true);
 
-        if(isHost){
+        if(canPublish){
           const tracks=await createLocalTracks({audio:true,video:true});
           for(const t of tracks){
             await room.localParticipant.publishTrack(t);
-            if(t.kind===Track.Kind.Video && videoRef.current) t.attach(videoRef.current);
+            if(t.kind===Track.Kind.Video) attachVideo(t,user.userId);
           }
         }
-      }catch(e){
-        notify("ERROR: "+(e?.message||String(e)));
-      }
-  })();
-  return ()=>{ room?.disconnect(); };
-  },[post.roomName,isHost,user.userId,user.username]);
+      }catch(e){ notify("ERROR: "+(e?.message||String(e))); }
+    })();
+    return ()=>{ room?.disconnect(); };
+  },[post.roomName,isHost,amCohost,cohostChecked,user.userId,user.username]);
 
   async function sendChat(){
     if(!text.trim())return;
@@ -724,11 +770,13 @@ function LiveDetailView({post,user,onBack,fireBurst,notify,onCloseLive,refreshFe
   async function sendGift(gift){
     try{
       const newBal=await db.sendGift({fromId:user.userId,toId:live.userId,postId:post.postId,gift});
-fireBurst({emoji:gift.emoji,name:gift.name,from:user.username,file:gift.file}); setShowGift(false);
+      fireBurst({emoji:gift.emoji,name:gift.name,from:user.username,file:gift.file}); setShowGift(false);
       window.dispatchEvent(new CustomEvent("lehar:balance",{detail:newBal}));
     }catch(e){ notify(e?.message==="INSUFFICIENT_COINS"?"Coins kam hain":"Gift nahi bheja ja saka"); }
   }
   const viewers=new Set(comments.map(c=>c.userId)).size+1;
+  const otherLiveUsers=(posts||[]).filter(p=>p.isLive&&p.userId!==post.userId&&p.userId!==user.userId);
+
   return (
     <div style={{display:"flex",flexDirection:"column",height:"100%"}}>
       <div ref={audioContainerRef} style={{display:"none"}}/>
@@ -736,9 +784,15 @@ fireBurst({emoji:gift.emoji,name:gift.name,from:user.username,file:gift.file}); 
         <button onClick={onBack} style={{position:"absolute",top:12,left:12,background:"rgba(0,0,0,.4)",border:"none",borderRadius:"50%",width:34,height:34,cursor:"pointer",color:"#fff",fontSize:16,zIndex:5}}>←</button>
         <div style={{position:"absolute",top:12,right:12,display:"flex",gap:8,zIndex:5}}>
           <div style={{background:"rgba(0,0,0,.4)",borderRadius:999,padding:"5px 10px",color:"#fff",fontSize:12}}>👁️ {viewers}</div>
+          {isHost&&!cohostInfo&&<button onClick={()=>setShowInvite(true)} style={{background:"#7c3aed",border:"none",borderRadius:999,padding:"5px 12px",color:"#fff",fontSize:11,fontWeight:700,cursor:"pointer"}}>➕ Co-Host</button>}
           {isHost&&<button onClick={closeLive} style={{background:"#be123c",border:"none",borderRadius:999,padding:"5px 12px",color:"#fff",fontSize:11,fontWeight:700,cursor:"pointer"}}>Live Khatam</button>}
         </div>
-        <video ref={videoRef} autoPlay playsInline muted={isHost} style={{width:"100%",height:"100%",objectFit:"cover",transform:isHost?"scaleX(-1)":"none"}}/>
+
+        <div style={{width:"100%",height:"100%",display:"flex",flexDirection:cohostInfo?"column":undefined}}>
+          <video ref={mainVideoRef} autoPlay playsInline muted={isHost} style={{width:"100%",height:cohostInfo?"50%":"100%",objectFit:"cover",transform:isHost?"scaleX(-1)":"none"}}/>
+          {cohostInfo&&<video ref={guestVideoRef} autoPlay playsInline muted={amCohost} style={{width:"100%",height:"50%",objectFit:"cover",borderTop:"2px solid #262626",transform:amCohost?"scaleX(-1)":"none"}}/>}
+        </div>
+
         {!connected&&(
           <div style={{position:"absolute",inset:0,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",background:"linear-gradient(180deg,#1c0010,#0a0a0a)"}}>
             <div style={{fontSize:48,marginBottom:8}}>🔴</div>
@@ -748,7 +802,33 @@ fireBurst({emoji:gift.emoji,name:gift.name,from:user.username,file:gift.file}); 
         )}
         {connected&&(
           <div style={{position:"absolute",bottom:8,left:12,background:"rgba(0,0,0,.4)",borderRadius:999,padding:"4px 10px",zIndex:5}}>
-            <p style={{margin:0,fontWeight:700,color:"#fafafa",fontSize:13}}>{live.username}{live.caption?` · ${live.caption}`:""}</p>
+            <p style={{margin:0,fontWeight:700,color:"#fafafa",fontSize:13}}>{live.username}{cohostInfo?` & ${cohostInfo.username}`:""}{live.caption?` · ${live.caption}`:""}</p>
+          </div>
+        )}
+
+        {incomingInvite&&(
+          <div style={{position:"absolute",top:60,left:12,right:12,background:"#171717",border:"1px solid #7c3aed",borderRadius:14,padding:12,zIndex:6}}>
+            <p style={{color:"#fafafa",fontSize:13,margin:"0 0 8px"}}>Kisi ne aapko co-host banne ki request bheji hai</p>
+            <div style={{display:"flex",gap:8}}>
+              <Btn onClick={acceptInvite} style={{flex:1,padding:"7px",fontSize:12}}>✓ Accept</Btn>
+              <Btn onClick={rejectInvite} ghost style={{flex:1,padding:"7px",fontSize:12}}>✕ Reject</Btn>
+            </div>
+          </div>
+        )}
+
+        {showInvite&&(
+          <div style={{position:"absolute",inset:0,background:"rgba(0,0,0,.7)",zIndex:7,display:"flex",alignItems:"center",justifyContent:"center",padding:20}} onClick={()=>setShowInvite(false)}>
+            <div style={{background:"#171717",border:"1px solid #262626",borderRadius:16,padding:16,width:"100%",maxWidth:320}} onClick={e=>e.stopPropagation()}>
+              <p style={{color:"#fafafa",fontWeight:700,margin:"0 0 10px"}}>Kisko invite karna hai?</p>
+              {otherLiveUsers.length===0&&<p style={{color:"#737373",fontSize:13}}>Abhi koi aur live nahi hai</p>}
+              {otherLiveUsers.map(p=>(
+                <button key={p.postId} onClick={()=>inviteUser(p.userId)} style={{display:"flex",alignItems:"center",gap:8,width:"100%",padding:8,background:"#0a0a0a",border:"1px solid #262626",borderRadius:10,marginBottom:6,cursor:"pointer"}}>
+                  <Avatar name={p.username} size={28} live/>
+                  <span style={{color:"#fafafa",fontSize:13}}>{p.username}</span>
+                </button>
+              ))}
+              <Btn ghost onClick={()=>setShowInvite(false)} style={{width:"100%",marginTop:4}}>Band Karein</Btn>
+            </div>
           </div>
         )}
       </div>
@@ -768,8 +848,10 @@ fireBurst({emoji:gift.emoji,name:gift.name,from:user.username,file:gift.file}); 
       </div>
       {showGift&&<GiftSheet balance={user.coinBalance} onClose={()=>setShowGift(false)} onSend={sendGift}/>}
     </div>
+  </div>
   );
 }
+                                
 
 // ── Live Feed View ────────────────────────────────────────────────────────────
 function LiveFeedView({posts,user,onOpenLive,onStartLive}){
