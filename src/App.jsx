@@ -1330,7 +1330,7 @@ const fireBurst=useCallback((b)=>{ setBurst({...b,key:Date.now()}); setTimeout((
   if(activeLive){
     return (
       <div style={{minHeight:"100vh",background:"#0a0a0a"}}>
-        <LiveDetailView post={activeLive} user={user} onBack={()=>setActiveLive(null)} fireBurst={fireBurst} notify={notify} onCloseLive={closeLive} refreshFeed={refreshFeed}/>
+        <LiveDetailView post={activeLive} posts={posts} user={user} onBack={()=>setActiveLive(null)} fireBurst={fireBurst} notify={notify} onCloseLive={closeLive} refreshFeed={refreshFeed}/>
         <GiftBurst burst={burst}/>
         <Toast text={toast}/>
         <style>{GLOBAL_CSS}</style>
