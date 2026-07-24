@@ -654,6 +654,7 @@ function LiveDetailView({post,posts,user,onBack,fireBurst,notify,onCloseLive,ref
   const [amCohost,setAmCohost]=useState(false);
   const [cohostChecked,setCohostChecked]=useState(false);
   const [incomingInvite,setIncomingInvite]=useState(null);
+  const [participants,setParticipants]=useState(()=>new Set());
   const chatRef=useRef(null);
   const mainVideoRef=useRef(null);
   const guestVideoRef=useRef(null);
@@ -741,8 +742,13 @@ function LiveDetailView({post,posts,user,onBack,fireBurst,notify,onCloseLive,ref
           }
         });
         room.on(RoomEvent.TrackUnsubscribed,(track)=>{ track.detach().forEach(el=>el.remove?.()); });
-
+room.on(RoomEvent.ParticipantConnected,(p)=>{ setParticipants(prev=>new Set(prev).add(p.identity)); });
+        room.on(RoomEvent.ParticipantDisconnected,(p)=>{ setParticipants(prev=>{ const s=new Set(prev); s.delete(p.identity); return s; }); });
         await room.connect(LIVEKIT_URL,token);
+        const seed=new Set();
+        room.remoteParticipants.forEach((p)=>seed.add(p.identity));
+        if(canPublish) seed.add(user.userId);
+        setParticipants(seed);
         setConnected(true);
 
         if(canPublish){
@@ -775,6 +781,7 @@ function LiveDetailView({post,posts,user,onBack,fireBurst,notify,onCloseLive,ref
     }catch(e){ notify(e?.message==="INSUFFICIENT_COINS"?"Coins kam hain":"Gift nahi bheja ja saka"); }
   }
   const viewers=new Set(comments.map(c=>c.userId)).size+1;
+  const hasGuest=[...participants].some(id=>id!==post.userId);
   const otherLiveUsers=(posts||[]).filter(p=>p.isLive&&p.userId!==post.userId&&p.userId!==user.userId);
 
   return (
@@ -788,9 +795,10 @@ function LiveDetailView({post,posts,user,onBack,fireBurst,notify,onCloseLive,ref
           {isHost&&<button onClick={closeLive} style={{background:"#be123c",border:"none",borderRadius:999,padding:"5px 12px",color:"#fff",fontSize:11,fontWeight:700,cursor:"pointer"}}>Live Khatam</button>}
         </div>
 
-        <div style={{width:"100%",height:"100%",display:"flex",flexDirection:cohostInfo?"column":undefined}}>
-          <video ref={mainVideoRef} autoPlay playsInline muted={isHost} style={{width:"100%",height:cohostInfo?"50%":"100%",objectFit:"cover",transform:isHost?"scaleX(-1)":"none"}}/>
-          {cohostInfo&&<video ref={guestVideoRef} autoPlay playsInline muted={amCohost} style={{width:"100%",height:"50%",objectFit:"cover",borderTop:"2px solid #262626",transform:amCohost?"scaleX(-1)":"none"}}/>}
+<div style={{width:"100%",height:"100%",display:"flex",flexDirection:hasGuest?"column":undefined}}>
+            <video ref={mainVideoRef} autoPlay playsInline muted={isHost} style={{width:"100%",height:hasGuest?"50%":"100%",objectFit:"cover",transform:isHost?"scaleX(-1)":"none"}}/>
+            {hasGuest&&<video ref={guestVideoRef} autoPlay playsInline muted={amCohost} style={{width:"100%",height:"50%",objectFit:"cover",borderTop:"2px solid #262626",transform:amCohost?"scaleX(-1)":"none"}}/>}
+          </div>
         </div>
 
         {!connected&&(
