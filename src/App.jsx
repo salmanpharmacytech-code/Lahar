@@ -787,7 +787,7 @@ room.on(RoomEvent.ParticipantConnected,(p)=>{ setParticipants(prev=>new Set(prev
   return (
     <div style={{display:"flex",flexDirection:"column",height:"100%"}}>
       <div ref={audioContainerRef} style={{display:"none"}}/>
-      <div>
+      
       <div style={{flex:1,background:"#000",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",position:"relative",overflow:"hidden"}}>
         <button onClick={onBack} style={{position:"absolute",top:12,left:12,background:"rgba(0,0,0,.4)",border:"none",borderRadius:"50%",width:34,height:34,cursor:"pointer",color:"#fff",fontSize:16,zIndex:5}}>←</button>
         <div style={{position:"absolute",top:12,right:12,display:"flex",gap:8,zIndex:5}}>
