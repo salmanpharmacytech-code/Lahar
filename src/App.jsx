@@ -848,7 +848,6 @@ function LiveDetailView({post,posts,user,onBack,fireBurst,notify,onCloseLive,ref
       </div>
       {showGift&&<GiftSheet balance={user.coinBalance} onClose={()=>setShowGift(false)} onSend={sendGift}/>}
     </div>
-  </div>
   );
 }
                                 
