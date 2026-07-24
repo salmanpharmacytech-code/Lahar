@@ -838,6 +838,7 @@ room.on(RoomEvent.ParticipantConnected,(p)=>{ setParticipants(prev=>new Set(prev
               ))}
               <Btn ghost onClick={()=>setShowInvite(false)} style={{width:"100%",marginTop:4}}>Band Karein</Btn>
             </div>
+            </div>
         )}
       </div>
       <div style={{background:"#171717",borderTop:"1px solid #262626",display:"flex",flexDirection:"column",height:"42%"}}>
