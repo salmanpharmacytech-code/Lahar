@@ -787,6 +787,7 @@ room.on(RoomEvent.ParticipantConnected,(p)=>{ setParticipants(prev=>new Set(prev
   return (
     <div style={{display:"flex",flexDirection:"column",height:"100%"}}>
       <div ref={audioContainerRef} style={{display:"none"}}/>
+      <div>
       <div style={{flex:1,background:"#000",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",position:"relative",overflow:"hidden"}}>
         <button onClick={onBack} style={{position:"absolute",top:12,left:12,background:"rgba(0,0,0,.4)",border:"none",borderRadius:"50%",width:34,height:34,cursor:"pointer",color:"#fff",fontSize:16,zIndex:5}}>←</button>
         <div style={{position:"absolute",top:12,right:12,display:"flex",gap:8,zIndex:5}}>
@@ -799,7 +800,7 @@ room.on(RoomEvent.ParticipantConnected,(p)=>{ setParticipants(prev=>new Set(prev
             <video ref={mainVideoRef} autoPlay playsInline muted={isHost} style={{width:"100%",height:hasGuest?"50%":"100%",objectFit:"cover",transform:isHost?"scaleX(-1)":"none"}}/>
             {hasGuest&&<video ref={guestVideoRef} autoPlay playsInline muted={amCohost} style={{width:"100%",height:"50%",objectFit:"cover",borderTop:"2px solid #262626",transform:amCohost?"scaleX(-1)":"none"}}/>}
           </div>
-        </div>
+        
 
         {!connected&&(
           <div style={{position:"absolute",inset:0,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",background:"linear-gradient(180deg,#1c0010,#0a0a0a)"}}>
