@@ -26,6 +26,51 @@ async function fetchLiveKitToken({ room, identity, name, canPublish }) {
 };
 const Ic = ({n,size=16,cls=""}) => <span className={cls} style={{fontSize:size}}>{IC[n]||"●"}</span>;
 
+// ── SVG icon system (professional icon set — replaces emoji chrome icons) ───
+const SVGIC = {
+  home: "M3 11l9-7 9 7 M5 10v9a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1v-9",
+  live: "M12 12m-3 0a3 3 0 1 0 6 0a3 3 0 1 0 -6 0 M7 8a7 7 0 0 0 0 8 M17 8a7 7 0 0 1 0 8 M4 5a11 11 0 0 0 0 14 M20 5a11 11 0 0 1 0 14",
+  reel: "M3 4h18v16H3z M8 4l2.5 5 M14 4l2.5 5 M3 12h18",
+  search: "M11 4a7 7 0 1 0 0 14a7 7 0 0 0 0-14z M21 21l-4.3-4.3",
+  chat: "M4 5h16v11H8l-4 4z",
+  user: "M12 4.5a3.5 3.5 0 1 0 0 7a3.5 3.5 0 0 0 0-7z M4.5 20c1.6-3.6 5-5.5 7.5-5.5S18 16.4 19.5 20",
+  plus: "M12 5v14 M5 12h14",
+  bell: "M12 2a6 6 0 0 0-6 6v3.3c0 .6-.2 1.2-.6 1.7L4 15.5c-.6.8 0 2 1 2h14c1 0 1.6-1.2 1-2l-1.4-2.5c-.4-.5-.6-1.1-.6-1.7V8a6 6 0 0 0-6-6z M9.5 20a2.5 2.5 0 0 0 5 0",
+  shield: "M12 3l7 3v6c0 4.5-3 8-7 9-4-1-7-4.5-7-9V6z",
+  heart: "M12 20s-7-4.4-9.3-8.8C1.2 8 2.6 5 6 5c2 0 3.4 1.2 4 2.4.6-1.2 2-2.4 4-2.4 3.4 0 4.8 3 3.3 6.2C19 15.6 12 20 12 20z",
+  comment: "M4 5h16v11H8l-4 4z",
+  gift: "M3 9h18v11H3z M3 9h18 M12 9v11 M12 9c-1.5-4-6-4-6-1.3C6 9 8 9 12 9zm0 0c1.5-4 6-4 6-1.3C18 9 16 9 12 9z",
+  share: "M4 12v6a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-6 M16 6l-4-4-4 4 M12 2v13",
+  star: "M12 2.5l2.9 6 6.6.9-4.8 4.6 1.2 6.5-5.9-3.2-5.9 3.2 1.2-6.5-4.8-4.6 6.6-.9z",
+  close: "M18 6L6 18 M6 6l12 12",
+  back: "M19 12H5 M12 19l-7-7 7-7",
+  check: "M20 6L9 17l-5-5",
+  edit: "M12 20h9 M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z",
+  lock: "M5 11h14v10H5z M8 11V7a4 4 0 0 1 8 0v4",
+  logout: "M9 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h3 M16 17l5-5-5-5 M21 12H9",
+  upload: "M12 15V4 M7 9l5-5 5 5 M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3",
+  trash: "M3 6h18 M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2 M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6",
+  more: "M12 5m-1.2 0a1.2 1.2 0 1 0 2.4 0a1.2 1.2 0 1 0 -2.4 0 M12 12m-1.2 0a1.2 1.2 0 1 0 2.4 0a1.2 1.2 0 1 0 -2.4 0 M12 19m-1.2 0a1.2 1.2 0 1 0 2.4 0a1.2 1.2 0 1 0 -2.4 0",
+  image: "M3 4h18v16H3z M8.5 10.5m-1.5 0a1.5 1.5 0 1 0 3 0a1.5 1.5 0 1 0 -3 0 M21 15l-5-5-9 9",
+  play: "M6 4l14 8-14 8z",
+  eye: "M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z M12 12m-3 0a3 3 0 1 0 6 0a3 3 0 1 0 -6 0",
+  send: "M22 2L11 13 M22 2l-7 20-4-9-9-4z",
+  wallet: "M3 7h15a3 3 0 0 1 3 3v7a3 3 0 0 1-3 3H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h13 M16 13m-1.5 0a1.5 1.5 0 1 0 3 0a1.5 1.5 0 1 0 -3 0",
+  cash: "M2 7h20v10H2z M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6z",
+  verified: "M12 2.5l2.2 1.2 2.5-.4 1 2.3 2.3 1-.4 2.5 1.2 2.2-1.2 2.2.4 2.5-2.3 1-1 2.3-2.5-.4L12 21.5l-2.2-1.2-2.5.4-1-2.3-2.3-1 .4-2.5L3.2 12l1.2-2.2-.4-2.5 2.3-1 1-2.3 2.5.4z M8.5 12l2.3 2.3 4.7-4.7",
+  camera: "M4 8h3l2-3h6l2 3h3v11H4z M12 12m-3.5 0a3.5 3.5 0 1 0 7 0a3.5 3.5 0 1 0 -7 0",
+  mute: "M11 5L6 9H2v6h4l5 4z M23 9l-6 6 M17 9l6 6",
+  unmute: "M11 5L6 9H2v6h4l5 4z M15.5 8.5a5 5 0 0 1 0 7 M18.5 6a9 9 0 0 1 0 12",
+};
+function Icon({name,size=18,color="currentColor",fill="none",strokeWidth=1.8}){
+  const d=SVGIC[name]; if(!d) return null;
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill={fill} stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">
+      {d.split(" M").map((seg,i)=><path key={i} d={i===0?seg:"M"+seg}/>)}
+    </svg>
+  );
+}
+
 // ── Config ───────────────────────────────────────────────────────────────────
 const APP_NAME = "Lehar";
 const OWNER_PAYMENT = { Easypaisa:"03478946876", JazzCash:"03127847503", SadaPay:"03449649860" };
@@ -46,7 +91,7 @@ const GIFTS = [
   {id:"lion",name:"Lion",emoji:"🦁",cost:1000000,pkr:100000,file:"lion.mp4"},
   {id:"car",name:"Car",emoji:"🚙",cost:2000000,pkr:200000,file:"car.mp4"},
 ];
-const AVATAR_COLORS = ["#e11d48","#f59e0b","#7c3aed","#059669","#0284c7","#c026d3","#ea580c"];
+const AVATAR_COLORS = ["#E5594A","#D4AF6A","#7c3aed","#059669","#0284c7","#c026d3","#ea580c"];
 const REACTIONS = [
   {id:"heart",emoji:"❤️"},
   {id:"laugh",emoji:"😂"},
@@ -63,26 +108,26 @@ function Avatar({name,size=40,live=false,pic=null,verified=false}){
   const bg=avatarColor(name); const initial=(name||"?")[0]?.toUpperCase()||"?";
   return (
     <div style={{position:"relative",width:size,height:size,flexShrink:0}}>
-      <div style={{width:size,height:size,borderRadius:"50%",background:pic?"transparent":bg,border:live?"2px solid #e11d48":"none",overflow:"hidden",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontWeight:700,fontSize:size*0.4}}>
+      <div style={{width:size,height:size,borderRadius:"50%",background:pic?"transparent":bg,border:live?"2px solid #E5594A":"none",overflow:"hidden",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontWeight:700,fontSize:size*0.4}}>
         {pic?<img src={pic} alt={name} style={{width:"100%",height:"100%",objectFit:"cover"}}/>:initial}
       </div>
-      {live&&<span style={{position:"absolute",bottom:-4,left:"50%",transform:"translateX(-50%)",background:"#be123c",color:"#fff",fontSize:8,padding:"1px 5px",borderRadius:999,fontWeight:700}}>LIVE</span>}
-      {verified&&<span style={{position:"absolute",bottom:0,right:0,fontSize:10}}>✅</span>}
+      {live&&<span style={{position:"absolute",bottom:-4,left:"50%",transform:"translateX(-50%)",background:"#C0392B",color:"#fff",fontSize:8,padding:"1px 5px",borderRadius:999,fontWeight:700}}>LIVE</span>}
+      {verified&&<span style={{position:"absolute",bottom:0,right:0,background:"#0C0D10",borderRadius:"50%",display:"flex"}}><Icon name="verified" size={13} color="#2FBF87" fill="#2FBF87" strokeWidth={0}/></span>}
     </div>
   );
 }
 
 function CoinPill({value,onClick}){
-  return <button onClick={onClick} style={{display:"flex",alignItems:"center",gap:4,background:"#171717",border:"1px solid #f59e0b",borderRadius:999,padding:"4px 10px",cursor:"pointer"}}><span style={{color:"#f59e0b",fontSize:12}}>⭐</span><span style={{color:"#f59e0b",fontWeight:700,fontSize:13,fontFamily:"monospace"}}>{value??0}</span></button>;
+  return <button onClick={onClick} style={{display:"flex",alignItems:"center",gap:5,background:"#16181D",border:"1px solid #D4AF6A",borderRadius:999,padding:"4px 10px",cursor:"pointer"}}><Icon name="star" size={12} color="#D4AF6A" fill="#D4AF6A" strokeWidth={1.4}/><span style={{color:"#D4AF6A",fontWeight:700,fontSize:13,fontFamily:"monospace"}}>{value??0}</span></button>;
 }
 
 function Btn({children,onClick,disabled,style={},ghost=false}){
   const base={fontWeight:700,borderRadius:14,padding:"10px 16px",border:"none",cursor:disabled?"not-allowed":"pointer",opacity:disabled?0.4:1,fontSize:14,display:"flex",alignItems:"center",justifyContent:"center",gap:6,transition:"all .15s",...style};
-  const theme=ghost?{background:"transparent",border:"1px solid #404040",color:"#e5e5e5"}:{background:"linear-gradient(135deg,#f59e0b,#e11d48)",color:"#0a0a0a"};
+  const theme=ghost?{background:"transparent",border:"1px solid #3A3F47",color:"#EDEDEF"}:{background:"linear-gradient(135deg,#2FBF87,#22996B)",color:"#0C0D10"};
   return <button onClick={disabled?undefined:onClick} style={{...base,...theme}}>{children}</button>;
 }
 
-function Toast({text}){ if(!text)return null; return <div style={{position:"fixed",top:16,left:"50%",transform:"translateX(-50%)",background:"#fafafa",color:"#0a0a0a",padding:"8px 18px",borderRadius:999,fontWeight:600,fontSize:13,zIndex:300,whiteSpace:"nowrap",boxShadow:"0 4px 20px rgba(0,0,0,.4)"}}>{text}</div>; }
+function Toast({text}){ if(!text)return null; return <div style={{position:"fixed",top:16,left:"50%",transform:"translateX(-50%)",background:"#EDEDEF",color:"#0C0D10",padding:"8px 18px",borderRadius:999,fontWeight:600,fontSize:13,zIndex:300,whiteSpace:"nowrap",boxShadow:"0 4px 20px rgba(0,0,0,.4)"}}>{text}</div>; }
 
 function GiftBurst({burst}){
   const videoRef=useRef(null);
@@ -128,8 +173,8 @@ function GiftBurst({burst}){
       ):(
         <div style={{fontSize:64,animation:"giftPop 2.1s ease-out forwards"}}>{burst.emoji}</div>
       )}
-      {needsTap&&<div onClick={unmute} style={{marginTop:8,background:"rgba(0,0,0,.5)",color:"#fff",padding:"4px 12px",borderRadius:999,fontSize:12,pointerEvents:"auto",cursor:"pointer"}}>🔇 Awaaz ke liye tap karein</div>}
-      <div style={{fontWeight:800,fontSize:18,marginTop:8,background:"linear-gradient(90deg,#fcd34d,#fb7185)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>{burst.from} ne {burst.name} bheja!</div>
+      {needsTap&&<div onClick={unmute} style={{marginTop:8,background:"rgba(0,0,0,.5)",color:"#fff",padding:"4px 12px",borderRadius:999,fontSize:12,pointerEvents:"auto",cursor:"pointer",display:"flex",alignItems:"center",gap:6}}><Icon name="mute" size={14}/> Awaaz ke liye tap karein</div>}
+      <div style={{fontWeight:800,fontSize:18,marginTop:8,background:"linear-gradient(90deg,#D4AF6A,#F0796B)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>{burst.from} ne {burst.name} bheja!</div>
     </div>
   );
 }
@@ -137,12 +182,12 @@ function GiftBurst({burst}){
 function ConfirmDialog({title,message,onConfirm,onCancel}){
   return (
     <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.7)",zIndex:200,display:"flex",alignItems:"center",justifyContent:"center",padding:24}} onClick={onCancel}>
-      <div style={{background:"#171717",border:"1px solid #262626",borderRadius:18,padding:20,width:"100%",maxWidth:320}} onClick={e=>e.stopPropagation()}>
-        <h3 style={{color:"#fafafa",margin:"0 0 8px",fontWeight:700,fontSize:16}}>{title}</h3>
-        <p style={{color:"#a3a3a3",fontSize:13,margin:"0 0 16px"}}>{message}</p>
+      <div style={{background:"#16181D",border:"1px solid #242830",borderRadius:18,padding:20,width:"100%",maxWidth:320}} onClick={e=>e.stopPropagation()}>
+        <h3 style={{color:"#EDEDEF",margin:"0 0 8px",fontWeight:700,fontSize:16}}>{title}</h3>
+        <p style={{color:"#9AA0A6",fontSize:13,margin:"0 0 16px"}}>{message}</p>
         <div style={{display:"flex",gap:8}}>
           <Btn ghost onClick={onCancel} style={{flex:1}}>Cancel</Btn>
-          <Btn onClick={onConfirm} style={{flex:1,background:"#e11d48",color:"#fff"}}>Delete</Btn>
+          <Btn onClick={onConfirm} style={{flex:1,background:"#E5594A",color:"#fff"}}>Delete</Btn>
         </div>
       </div>
     </div>
@@ -179,23 +224,29 @@ function AuthScreen({notify}){
     } finally { setBusy(false); }
   }
 
-  const inp={width:"100%",background:"#171717",border:"1px solid #262626",borderRadius:12,padding:"12px 14px",color:"#fafafa",fontSize:14,outline:"none",boxSizing:"border-box"};
+  const inp={width:"100%",background:"#16181D",border:"1px solid #242830",borderRadius:12,padding:"12px 14px",color:"#EDEDEF",fontSize:14,outline:"none",boxSizing:"border-box"};
   return (
     <div style={{minHeight:"100%",display:"flex",flexDirection:"column",justifyContent:"center",padding:"40px 24px"}}>
       <div style={{textAlign:"center",marginBottom:32}}>
-        <div style={{fontSize:40,marginBottom:4}}>🌊</div>
-        <h1 style={{fontSize:32,fontWeight:900,color:"#fafafa",margin:0}}>{APP_NAME}</h1>
-        <p style={{color:"#525252",fontSize:13,marginTop:4}}>Short videos • Live • Real gifting</p>
+        <div style={{display:"flex",justifyContent:"center",gap:2,marginBottom:10}}>
+          <span style={{width:4,height:14,background:"#2FBF87",borderRadius:3,display:"inline-block"}}/>
+          <span style={{width:4,height:26,background:"#2FBF87",borderRadius:3,display:"inline-block"}}/>
+          <span style={{width:4,height:34,background:"#2FBF87",borderRadius:3,display:"inline-block"}}/>
+          <span style={{width:4,height:20,background:"#2FBF87",borderRadius:3,display:"inline-block"}}/>
+          <span style={{width:4,height:30,background:"#2FBF87",borderRadius:3,display:"inline-block"}}/>
+        </div>
+        <h1 style={{fontSize:32,fontWeight:800,color:"#EDEDEF",margin:0,fontFamily:"'Sora',sans-serif"}}>{APP_NAME}</h1>
+        <p style={{color:"#85898F",fontSize:13,marginTop:4}}>Short videos • Live • Real gifting</p>
       </div>
-      <div style={{display:"flex",background:"#171717",borderRadius:14,padding:4,marginBottom:20}}>
-        {["login","signup"].map(m=><button key={m} onClick={()=>setMode(m)} style={{flex:1,padding:"8px",borderRadius:10,border:"none",fontWeight:700,fontSize:13,background:mode===m?"#fafafa":"transparent",color:mode===m?"#0a0a0a":"#737373",cursor:"pointer"}}>{m==="login"?"Login":"Signup"}</button>)}
+      <div style={{display:"flex",background:"#16181D",borderRadius:14,padding:4,marginBottom:20}}>
+        {["login","signup"].map(m=><button key={m} onClick={()=>setMode(m)} style={{flex:1,padding:"8px",borderRadius:10,border:"none",fontWeight:700,fontSize:13,background:mode===m?"#EDEDEF":"transparent",color:mode===m?"#0C0D10":"#9AA0A6",cursor:"pointer"}}>{m==="login"?"Login":"Signup"}</button>)}
       </div>
       <div style={{display:"flex",flexDirection:"column",gap:10}}>
         {mode==="signup"&&<input value={username} onChange={e=>setUsername(e.target.value)} placeholder="Username" style={inp}/>}
         <input value={email} onChange={e=>setEmail(e.target.value)} placeholder="Email" type="email" style={inp}/>
         <input value={password} onChange={e=>setPassword(e.target.value)} type="password" placeholder="Password" style={inp}/>
         {mode==="signup"&&<input value={confirm} onChange={e=>setConfirm(e.target.value)} type="password" placeholder="Password dobara likhein" style={inp}/>}
-        <Btn onClick={handleSubmit} disabled={busy} style={{width:"100%",marginTop:4}}>{busy?"⟳ ":""}{mode==="login"?"Login Karein":"Account Banayen"}</Btn>
+        <Btn onClick={handleSubmit} disabled={busy} style={{width:"100%",marginTop:4}}>{mode==="login"?"Login Karein":"Account Banayen"}</Btn>
       </div>
     </div>
   );
@@ -213,39 +264,39 @@ function translateAuthError(msg){
 function CommentSheet({post,user,onClose,onAddComment,onReact,onDeleteComment}){
   const [text,setText]=useState("");
   const isPostOwner=post.userId===user.userId;
-  const inp={flex:1,background:"#0a0a0a",border:"1px solid #262626",borderRadius:999,padding:"8px 14px",color:"#fafafa",fontSize:13,outline:"none"};
+  const inp={flex:1,background:"#0C0D10",border:"1px solid #242830",borderRadius:999,padding:"8px 14px",color:"#EDEDEF",fontSize:13,outline:"none"};
   return (
     <div style={{position:"fixed",inset:0,zIndex:120,display:"flex",flexDirection:"column",justifyContent:"flex-end"}}>
       <div style={{flex:1}} onClick={onClose}/>
-      <div style={{background:"#171717",borderTop:"1px solid #262626",borderRadius:"20px 20px 0 0",maxHeight:"70vh",display:"flex",flexDirection:"column"}}>
-        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"12px 16px",borderBottom:"1px solid #262626"}}>
-          <span style={{fontWeight:700,color:"#fafafa"}}>Comments ({post.comments?.length||0})</span>
-          <button onClick={onClose} style={{color:"#737373",background:"none",border:"none",fontSize:18,cursor:"pointer"}}>✕</button>
+      <div style={{background:"#16181D",borderTop:"1px solid #242830",borderRadius:"20px 20px 0 0",maxHeight:"70vh",display:"flex",flexDirection:"column"}}>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"12px 16px",borderBottom:"1px solid #242830"}}>
+          <span style={{fontWeight:700,color:"#EDEDEF"}}>Comments ({post.comments?.length||0})</span>
+          <button onClick={onClose} style={{color:"#9AA0A6",background:"none",border:"none",cursor:"pointer",display:"flex"}}><Icon name="close" size={18}/></button>
         </div>
         <div style={{flex:1,overflowY:"auto",padding:"8px 16px",display:"flex",flexDirection:"column",gap:8}}>
           {(post.comments||[]).map((c)=>(
             <div key={c.id} style={{display:"flex",gap:8,alignItems:"flex-start"}}>
               <Avatar name={c.username} size={28} pic={c.profilePic}/>
-              <div style={{background:"#0a0a0a",borderRadius:10,padding:"6px 10px",flex:1}}>
-                <span style={{fontWeight:700,color:"#fafafa",fontSize:12}}>{c.username} </span>
-                <span style={{color:c.isGift?"#fcd34d":"#d4d4d4",fontSize:13}}>{c.text}</span>
+              <div style={{background:"#0C0D10",borderRadius:10,padding:"6px 10px",flex:1}}>
+                <span style={{fontWeight:700,color:"#EDEDEF",fontSize:12}}>{c.username} </span>
+                <span style={{color:c.isGift?"#D4AF6A":"#C7CBD1",fontSize:13}}>{c.text}</span>
                 <div style={{display:"flex",alignItems:"center",gap:6,marginTop:4}}>
                   {REACTIONS.map(r=>(
-                    <button key={r.id} onClick={()=>onReact(c,r.id)} style={{background:c.reaction===r.id?"rgba(245,158,11,.25)":"none",border:"none",cursor:"pointer",fontSize:13,borderRadius:8,padding:"1px 4px",opacity:c.reaction===r.id?1:0.55}}>{r.emoji}</button>
+                    <button key={r.id} onClick={()=>onReact(c,r.id)} style={{background:c.reaction===r.id?"rgba(212,175,106,.25)":"none",border:"none",cursor:"pointer",fontSize:13,borderRadius:8,padding:"1px 4px",opacity:c.reaction===r.id?1:0.55}}>{r.emoji}</button>
                   ))}
                   {(c.userId===user.userId||isPostOwner)&&(
-                    <button onClick={()=>onDeleteComment(c)} style={{marginLeft:"auto",background:"none",border:"none",cursor:"pointer",fontSize:11,color:"#737373"}}>🗑️</button>
+                    <button onClick={()=>onDeleteComment(c)} style={{marginLeft:"auto",background:"none",border:"none",cursor:"pointer",color:"#9AA0A6",display:"flex"}}><Icon name="trash" size={13}/></button>
                   )}
                 </div>
               </div>
             </div>
           ))}
-          {(post.comments||[]).length===0&&<p style={{color:"#525252",fontSize:13,textAlign:"center",padding:"20px 0"}}>Koi comment nahi — pehle aap karein!</p>}
+          {(post.comments||[]).length===0&&<p style={{color:"#85898F",fontSize:13,textAlign:"center",padding:"20px 0"}}>Koi comment nahi — pehle aap karein!</p>}
         </div>
-        <div style={{display:"flex",gap:8,padding:10,borderTop:"1px solid #262626"}}>
+        <div style={{display:"flex",gap:8,padding:10,borderTop:"1px solid #242830"}}>
           <Avatar name={user.username} size={28} pic={user.profilePic}/>
           <input value={text} onChange={e=>setText(e.target.value)} onKeyDown={e=>e.key==="Enter"&&text.trim()&&(onAddComment(text.trim()),setText(""))} placeholder="Comment likhein..." style={inp}/>
-          <button onClick={()=>{if(text.trim()){onAddComment(text.trim());setText("");}}} style={{background:"#f59e0b",color:"#0a0a0a",border:"none",borderRadius:999,padding:"0 14px",fontWeight:700,cursor:"pointer"}}>↑</button>
+          <button onClick={()=>{if(text.trim()){onAddComment(text.trim());setText("");}}} style={{background:"#D4AF6A",color:"#0C0D10",border:"none",borderRadius:999,padding:"0 14px",fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center"}}><Icon name="send" size={15} color="#0C0D10"/></button>
         </div>
       </div>
     </div>
@@ -257,21 +308,21 @@ function GiftSheet({balance,onClose,onSend}){
   return (
     <div style={{position:"fixed",inset:0,zIndex:120,display:"flex",flexDirection:"column",justifyContent:"flex-end"}}>
       <div style={{flex:1}} onClick={onClose}/>
-      <div style={{background:"#171717",borderTop:"1px solid #262626",borderRadius:"20px 20px 0 0"}}>
-        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"12px 16px",borderBottom:"1px solid #262626"}}>
-          <span style={{fontWeight:700,color:"#fafafa"}}>🎁 Gift Bhejein</span>
+      <div style={{background:"#16181D",borderTop:"1px solid #242830",borderRadius:"20px 20px 0 0"}}>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"12px 16px",borderBottom:"1px solid #242830"}}>
+          <span style={{fontWeight:700,color:"#EDEDEF",display:"flex",alignItems:"center",gap:6}}><Icon name="gift" size={16} color="#D4AF6A"/> Gift Bhejein</span>
           <CoinPill value={balance}/>
         </div>
         <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8,padding:14,maxHeight:240,overflowY:"auto"}}>
           {GIFTS.map(g=>(
-            <button key={g.id} onClick={()=>onSend(g)} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:4,background:"#0a0a0a",border:"1px solid #262626",borderRadius:12,padding:"10px 4px",cursor:"pointer"}}>
+            <button key={g.id} onClick={()=>onSend(g)} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:4,background:"#0C0D10",border:"1px solid #242830",borderRadius:12,padding:"10px 4px",cursor:"pointer"}}>
               <span style={{fontSize:26}}>{g.emoji}</span>
-              <span style={{color:"#d4d4d4",fontSize:10,fontWeight:600}}>{g.name}</span>
-              <span style={{color:"#f59e0b",fontSize:10,fontFamily:"monospace"}}>{g.cost}</span>
+              <span style={{color:"#C7CBD1",fontSize:10,fontWeight:600}}>{g.name}</span>
+              <span style={{color:"#D4AF6A",fontSize:10,fontFamily:"monospace"}}>{g.cost}</span>
             </button>
           ))}
         </div>
-        <p style={{textAlign:"center",color:"#525252",fontSize:11,paddingBottom:12}}>Coins kam hain? Wallet se khareedein</p>
+        <p style={{textAlign:"center",color:"#85898F",fontSize:11,paddingBottom:12}}>Coins kam hain? Wallet se khareedein</p>
       </div>
     </div>
   );
@@ -284,23 +335,23 @@ function PostCard({post,user,onLike,onOpenComments,onOpenGift,onOpenLive,onOpenM
   const canDelete=post.userId===user.userId||user.isAdmin;
   const [menuOpen,setMenuOpen]=useState(false);
   return (
-    <div style={{background:"#171717",border:"1px solid #262626",borderRadius:18,overflow:"hidden",marginBottom:14}}>
+    <div style={{background:"#16181D",border:"1px solid #242830",borderRadius:18,overflow:"hidden",marginBottom:14}}>
       <div style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px"}}>
         <Avatar name={post.username} live={post.isLive} pic={author?.profilePic} verified={author?.verified}/>
         <div style={{flex:1}}>
           <div style={{display:"flex",alignItems:"center",gap:4}}>
-            <span style={{fontWeight:700,color:"#fafafa",fontSize:13}}>{post.username}</span>
-            {author?.verified&&<span style={{fontSize:11}}>✅</span>}
+            <span style={{fontWeight:700,color:"#EDEDEF",fontSize:13}}>{post.username}</span>
+            {author?.verified&&<Icon name="verified" size={13} color="#2FBF87" fill="#2FBF87" strokeWidth={0}/>}
           </div>
-          <span style={{color:"#525252",fontSize:11}}>{timeAgo(post.createdAt)} pehle</span>
+          <span style={{color:"#85898F",fontSize:11}}>{timeAgo(post.createdAt)} pehle</span>
         </div>
-        {post.isLive&&<button onClick={()=>onOpenLive(post)} style={{background:"#be123c",color:"#fff",border:"none",borderRadius:999,padding:"6px 12px",fontSize:11,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",gap:4}}>📡 Join Live</button>}
+        {post.isLive&&<button onClick={()=>onOpenLive(post)} style={{background:"#C0392B",color:"#fff",border:"none",borderRadius:999,padding:"6px 12px",fontSize:11,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",gap:5}}><Icon name="live" size={13}/> Join Live</button>}
         {canDelete&&(
           <div style={{position:"relative"}}>
-            <button onClick={()=>setMenuOpen(v=>!v)} style={{background:"none",border:"none",color:"#737373",fontSize:16,cursor:"pointer",padding:4}}>⋮</button>
+            <button onClick={()=>setMenuOpen(v=>!v)} style={{background:"none",border:"none",color:"#9AA0A6",fontSize:16,cursor:"pointer",padding:4}}>⋮</button>
             {menuOpen&&(
-              <div style={{position:"absolute",right:0,top:24,background:"#0a0a0a",border:"1px solid #262626",borderRadius:10,overflow:"hidden",zIndex:10,minWidth:120}}>
-                <button onClick={()=>{setMenuOpen(false);onDelete(post);}} style={{display:"flex",alignItems:"center",gap:6,width:"100%",padding:"10px 12px",background:"none",border:"none",color:"#e11d48",fontSize:12,fontWeight:600,cursor:"pointer"}}>🗑️ Delete</button>
+              <div style={{position:"absolute",right:0,top:24,background:"#0C0D10",border:"1px solid #242830",borderRadius:10,overflow:"hidden",zIndex:10,minWidth:120}}>
+                <button onClick={()=>{setMenuOpen(false);onDelete(post);}} style={{display:"flex",alignItems:"center",gap:6,width:"100%",padding:"10px 12px",background:"none",border:"none",color:"#E5594A",fontSize:12,fontWeight:600,cursor:"pointer"}}><Icon name="trash" size={14}/> Delete</button>
               </div>
             )}
           </div>
@@ -314,12 +365,12 @@ function PostCard({post,user,onLike,onOpenComments,onOpenGift,onOpenLive,onOpenM
       ):post.mediaData&&post.mediaType==="image"?(
         <img src={post.mediaData} alt="post" style={{width:"100%",maxHeight:400,objectFit:"cover",display:"block",cursor:"pointer"}} onClick={()=>onOpenMedia(post)}/>
       ):null}
-      {post.caption&&<p style={{padding:"8px 14px",color:"#e5e5e5",fontSize:14,lineHeight:1.5}}>{post.caption}</p>}
-      <div style={{display:"flex",alignItems:"center",gap:16,padding:"10px 14px",borderTop:"1px solid #262626"}}>
-        <button onClick={()=>onLike(post)} style={{display:"flex",alignItems:"center",gap:5,background:"none",border:"none",cursor:"pointer",color:liked?"#e11d48":"#737373",fontSize:13}}>❤️ {post.likes?.length||0}</button>
-        <button onClick={()=>onOpenComments(post)} style={{display:"flex",alignItems:"center",gap:5,background:"none",border:"none",cursor:"pointer",color:"#737373",fontSize:13}}>💬 {post.comments?.length||0}</button>
-        <button onClick={()=>onOpenGift(post)} style={{display:"flex",alignItems:"center",gap:5,background:"none",border:"none",cursor:"pointer",color:"#f59e0b",fontSize:13}}>🎁 Gift</button>
-        <button style={{display:"flex",alignItems:"center",gap:5,background:"none",border:"none",cursor:"pointer",color:"#737373",fontSize:13,marginLeft:"auto"}}>↗️</button>
+      {post.caption&&<p style={{padding:"8px 14px",color:"#EDEDEF",fontSize:14,lineHeight:1.5}}>{post.caption}</p>}
+      <div style={{display:"flex",alignItems:"center",gap:16,padding:"10px 14px",borderTop:"1px solid #242830"}}>
+        <button onClick={()=>onLike(post)} style={{display:"flex",alignItems:"center",gap:5,background:"none",border:"none",cursor:"pointer",color:liked?"#E5594A":"#9AA0A6",fontSize:13}}><Icon name="heart" size={16} color={liked?"#E5594A":"#9AA0A6"} fill={liked?"#E5594A":"none"}/> {post.likes?.length||0}</button>
+        <button onClick={()=>onOpenComments(post)} style={{display:"flex",alignItems:"center",gap:5,background:"none",border:"none",cursor:"pointer",color:"#9AA0A6",fontSize:13}}><Icon name="comment" size={16}/> {post.comments?.length||0}</button>
+        <button onClick={()=>onOpenGift(post)} style={{display:"flex",alignItems:"center",gap:5,background:"none",border:"none",cursor:"pointer",color:"#D4AF6A",fontSize:13}}><Icon name="gift" size={16} color="#D4AF6A"/> Gift</button>
+        <button style={{display:"flex",alignItems:"center",gap:5,background:"none",border:"none",cursor:"pointer",color:"#9AA0A6",fontSize:13,marginLeft:"auto"}}><Icon name="share" size={15}/></button>
       </div>
     </div>
   );
@@ -330,7 +381,7 @@ function MediaViewerModal({post,onClose}){
   if(!post) return null;
   return (
     <div style={{position:"fixed",inset:0,zIndex:200,background:"#000",display:"flex",flexDirection:"column"}} onClick={onClose}>
-      <button onClick={onClose} style={{position:"absolute",top:14,right:14,background:"rgba(255,255,255,.15)",border:"none",borderRadius:"50%",width:34,height:34,color:"#fff",fontSize:16,cursor:"pointer",zIndex:5}}>✕</button>
+      <button onClick={onClose} style={{position:"absolute",top:14,right:14,background:"rgba(255,255,255,.15)",border:"none",borderRadius:"50%",width:34,height:34,color:"#fff",cursor:"pointer",zIndex:5,display:"flex",alignItems:"center",justifyContent:"center"}}><Icon name="close" size={17}/></button>
       <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center"}} onClick={e=>e.stopPropagation()}>
         {post.mediaType==="video"?(
           <video src={post.mediaData} style={{maxWidth:"100%",maxHeight:"100%"}} controls autoPlay playsInline/>
@@ -338,7 +389,7 @@ function MediaViewerModal({post,onClose}){
           <img src={post.mediaData} alt="" style={{maxWidth:"100%",maxHeight:"100%",objectFit:"contain"}}/>
         )}
       </div>
-      {post.caption&&<p style={{color:"#fafafa",fontSize:13,padding:14,textAlign:"center"}}>{post.caption}</p>}
+      {post.caption&&<p style={{color:"#EDEDEF",fontSize:13,padding:14,textAlign:"center"}}>{post.caption}</p>}
     </div>
   );
 }
@@ -381,7 +432,7 @@ function FeedView({posts,user,refreshFeed,notify,fireBurst,onOpenLive}){
   }
   return (
     <div style={{padding:"10px 12px"}}>
-      {visible.length===0&&<div style={{textAlign:"center",padding:"60px 0",color:"#525252"}}><div style={{fontSize:36,marginBottom:8}}>🖼️</div><p>Koi post nahi — + button se post karein!</p></div>}
+      {visible.length===0&&<div style={{textAlign:"center",padding:"60px 0",color:"#85898F"}}><div style={{marginBottom:8,display:"flex",justifyContent:"center",color:"#3A3F47"}}><Icon name="image" size={36}/></div><p>Koi post nahi — + button se post karein!</p></div>}
       {visible.map(post=><PostCard key={post.postId} post={post} user={user} onLike={handleLike} onOpenComments={setCommentPost} onOpenGift={setGiftPost} onOpenLive={onOpenLive} onOpenMedia={setMediaPost} onDelete={setConfirmDelete}/>)}
       {commentPost&&<CommentSheet post={posts.find(p=>p.postId===commentPost.postId)||commentPost} user={user} onClose={()=>setCommentPost(null)} onAddComment={handleAddComment} onReact={handleReact} onDeleteComment={handleDeleteComment}/>}
       {giftPost&&<GiftSheet balance={user.coinBalance} onClose={()=>setGiftPost(null)} onSend={handleSendGift}/>}
@@ -428,27 +479,27 @@ function ReelUploadModal({user,onDone,onClose,notify}){
       notify("Upload nahi ho saka — dobara koshish karein");
     } finally { setBusy(false); }
   }
-  const inp={width:"100%",background:"#171717",border:"1px solid #262626",borderRadius:12,padding:"10px 14px",color:"#fafafa",fontSize:13,outline:"none",boxSizing:"border-box",resize:"none"};
+  const inp={width:"100%",background:"#16181D",border:"1px solid #242830",borderRadius:12,padding:"10px 14px",color:"#EDEDEF",fontSize:13,outline:"none",boxSizing:"border-box",resize:"none"};
   return (
     <div style={{position:"fixed",inset:0,zIndex:130,background:"rgba(0,0,0,.8)",display:"flex",flexDirection:"column",justifyContent:"flex-end"}}>
-      <div style={{background:"#0a0a0a",borderTop:"1px solid #262626",borderRadius:"20px 20px 0 0",padding:20}}>
+      <div style={{background:"#0C0D10",borderTop:"1px solid #242830",borderRadius:"20px 20px 0 0",padding:20}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
-          <span style={{fontWeight:700,color:"#fafafa",fontSize:17}}>🎬 Reel Upload Karein</span>
-          <button onClick={onClose} style={{background:"none",border:"none",color:"#737373",fontSize:20,cursor:"pointer"}}>✕</button>
+          <span style={{fontWeight:700,color:"#EDEDEF",fontSize:17,display:"flex",alignItems:"center",gap:8}}><Icon name="reel" size={18}/> Reel Upload Karein</span>
+          <button onClick={onClose} style={{background:"none",border:"none",color:"#9AA0A6",cursor:"pointer",display:"flex"}}><Icon name="close" size={20}/></button>
         </div>
         <input ref={fileRef} type="file" accept="video/*" style={{display:"none"}} onChange={onFileChange}/>
         {previewUrl?(
           <div style={{position:"relative",marginBottom:12,borderRadius:12,overflow:"hidden",background:"#000"}}>
             <video src={previewUrl} style={{width:"100%",maxHeight:180}} controls/>
-            <button onClick={()=>{setFile(null);setPreviewUrl(null);}} style={{position:"absolute",top:6,right:6,background:"rgba(0,0,0,.6)",border:"none",borderRadius:"50%",width:24,height:24,cursor:"pointer",color:"#fff",fontSize:12}}>✕</button>
+            <button onClick={()=>{setFile(null);setPreviewUrl(null);}} style={{position:"absolute",top:6,right:6,background:"rgba(0,0,0,.6)",border:"none",borderRadius:"50%",width:24,height:24,cursor:"pointer",color:"#fff",display:"flex",alignItems:"center",justifyContent:"center"}}><Icon name="close" size={13}/></button>
           </div>
         ):(
-          <button onClick={()=>fileRef.current?.click()} style={{width:"100%",height:100,border:"2px dashed #404040",borderRadius:12,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:6,marginBottom:12,background:"none",cursor:"pointer",color:"#525252"}}>
-            <span style={{fontSize:28}}>⬆️</span><span style={{fontSize:13}}>Gallery se Video choose karein</span>
+          <button onClick={()=>fileRef.current?.click()} style={{width:"100%",height:100,border:"2px dashed #3A3F47",borderRadius:12,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:6,marginBottom:12,background:"none",cursor:"pointer",color:"#85898F"}}>
+            <Icon name="upload" size={28} color="#2FBF87"/><span style={{fontSize:13}}>Gallery se Video choose karein</span>
           </button>
         )}
         <textarea value={caption} onChange={e=>setCaption(e.target.value)} placeholder="Caption likhein (optional)..." rows={2} style={{...inp,marginBottom:12}}/>
-        <Btn onClick={submit} disabled={busy||!file} style={{width:"100%"}}>{busy?"⟳ Uploading...":"⬆️ Reel Post Karein"}</Btn>
+        <Btn onClick={submit} disabled={busy||!file} style={{width:"100%"}}>{busy?"Uploading...":"Reel Post Karein"}</Btn>
       </div>
     </div>
   );
@@ -485,9 +536,9 @@ fireBurst({emoji:gift.emoji,name:gift.name,from:user.username,file:gift.file}); 
   }
 
   if(reels.length===0) return (
-    <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:12,color:"#525252"}}>
-      <span style={{fontSize:40}}>🎬</span><p>Abhi koi Reel nahi</p>
-      <Btn onClick={()=>setShowUpload(true)}>⬆️ Reel Upload Karein</Btn>
+    <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:12,color:"#85898F"}}>
+      <Icon name="reel" size={40} color="#85898F"/><p>Abhi koi Reel nahi</p>
+      <Btn onClick={()=>setShowUpload(true)}>Reel Upload Karein</Btn>
       {showUpload&&<ReelUploadModal user={user} notify={notify} onClose={()=>setShowUpload(false)} onDone={()=>{setShowUpload(false);refreshFeed();notify("Reel upload ho gayi!");}}/>}
     </div>
   );
@@ -503,28 +554,28 @@ fireBurst({emoji:gift.emoji,name:gift.name,from:user.username,file:gift.file}); 
         <div style={{flex:1,pointerEvents:"auto"}} onClick={()=>setCurrent(c=>Math.max(0,c-1))}/>
         <div style={{flex:1,pointerEvents:"auto"}} onClick={()=>setCurrent(c=>Math.min(reels.length-1,c+1))}/>
       </div>
-      <button onClick={()=>setMuted(m=>!m)} style={{position:"absolute",top:10,left:10,background:"rgba(0,0,0,.4)",border:"none",borderRadius:"50%",width:32,height:32,color:"#fff",fontSize:14,cursor:"pointer",zIndex:5}}>{muted?"🔇":"🔊"}</button>
+      <button onClick={()=>setMuted(m=>!m)} style={{position:"absolute",top:10,left:10,background:"rgba(0,0,0,.4)",border:"none",borderRadius:"50%",width:32,height:32,color:"#fff",cursor:"pointer",zIndex:5,display:"flex",alignItems:"center",justifyContent:"center"}}><Icon name={muted?"mute":"unmute"} size={15}/></button>
       <div style={{position:"absolute",right:12,bottom:100,display:"flex",flexDirection:"column",alignItems:"center",gap:18}}>
         <button onClick={handleLike} style={{display:"flex",flexDirection:"column",alignItems:"center",background:"none",border:"none",cursor:"pointer"}}>
-          <span style={{fontSize:26,filter:isLiked?"drop-shadow(0 0 6px #e11d48)":""}}>{isLiked?"❤️":"🤍"}</span>
+          <Icon name="heart" size={26} color={isLiked?"#E5594A":"#fff"} fill={isLiked?"#E5594A":"none"} strokeWidth={1.6}/>
           <span style={{color:"#fff",fontSize:11}}>{post.likes?.length||0}</span>
         </button>
         <button onClick={()=>setCommentPost(post)} style={{display:"flex",flexDirection:"column",alignItems:"center",background:"none",border:"none",cursor:"pointer"}}>
-          <span style={{fontSize:26}}>💬</span><span style={{color:"#fff",fontSize:11}}>{post.comments?.length||0}</span>
+          <Icon name="comment" size={24} color="#fff"/><span style={{color:"#fff",fontSize:11}}>{post.comments?.length||0}</span>
         </button>
         <button onClick={()=>setGiftPost(post)} style={{display:"flex",flexDirection:"column",alignItems:"center",background:"none",border:"none",cursor:"pointer"}}>
-          <span style={{fontSize:26}}>🎁</span><span style={{color:"#f59e0b",fontSize:11}}>Gift</span>
+          <Icon name="gift" size={24} color="#D4AF6A"/><span style={{color:"#D4AF6A",fontSize:11}}>Gift</span>
         </button>
         {canDelete&&(
           <button onClick={()=>setConfirmDelete(post)} style={{display:"flex",flexDirection:"column",alignItems:"center",background:"none",border:"none",cursor:"pointer"}}>
-            <span style={{fontSize:24}}>🗑️</span>
+            <Icon name="trash" size={22} color="#fff"/>
           </button>
         )}
       </div>
       <div style={{position:"absolute",bottom:80,left:12,right:60}}>
         <p style={{fontWeight:700,color:"#fff",fontSize:13}}>@{post.username}</p>
         {post.caption&&<p style={{color:"rgba(255,255,255,.8)",fontSize:12,marginTop:2}}>{post.caption}</p>}
-        <button onClick={()=>setShowUpload(true)} style={{marginTop:8,display:"flex",alignItems:"center",gap:5,background:"rgba(255,255,255,.2)",border:"1px solid rgba(255,255,255,.3)",borderRadius:999,padding:"5px 10px",color:"#fff",fontSize:11,fontWeight:700,cursor:"pointer",backdropFilter:"blur(8px)"}}>⬆️ Reel Upload</button>
+        <button onClick={()=>setShowUpload(true)} style={{marginTop:8,display:"flex",alignItems:"center",gap:5,background:"rgba(255,255,255,.2)",border:"1px solid rgba(255,255,255,.3)",borderRadius:999,padding:"5px 10px",color:"#fff",fontSize:11,fontWeight:700,cursor:"pointer",backdropFilter:"blur(8px)"}}><Icon name="upload" size={13}/> Reel Upload</button>
       </div>
       <div style={{position:"absolute",top:10,right:10,background:"rgba(0,0,0,.4)",borderRadius:999,padding:"3px 10px",color:"#fff",fontSize:11}}>{current+1}/{reels.length}</div>
       {commentPost&&<CommentSheet post={reels.find(p=>p.postId===commentPost.postId)||commentPost} user={user} onClose={()=>setCommentPost(null)} onAddComment={async(text)=>{
@@ -569,30 +620,30 @@ function CreateView({user,notify,onDone}){
     } finally { setBusy(false); }
   }
 
-  const inp={width:"100%",background:"#171717",border:"1px solid #262626",borderRadius:12,padding:"10px 14px",color:"#fafafa",fontSize:13,outline:"none",boxSizing:"border-box",resize:"none"};
+  const inp={width:"100%",background:"#16181D",border:"1px solid #242830",borderRadius:12,padding:"10px 14px",color:"#EDEDEF",fontSize:13,outline:"none",boxSizing:"border-box",resize:"none"};
   return (
     <div style={{padding:16}}>
       <input ref={fileRef} type="file" accept="image/*,video/*" style={{display:"none"}} onChange={onFileChange}/>
       {previewUrl?(
         <div style={{position:"relative",marginBottom:12,borderRadius:12,overflow:"hidden",background:"#000"}}>
           {mediaType==="video"?<video src={previewUrl} style={{width:"100%",maxHeight:240}} controls/>:<img src={previewUrl} alt="" style={{width:"100%",maxHeight:240,objectFit:"cover"}}/>}
-          <button onClick={()=>{setFile(null);setPreviewUrl(null);setMediaType(null);setIsReel(false);}} style={{position:"absolute",top:6,right:6,background:"rgba(0,0,0,.6)",border:"none",borderRadius:"50%",width:26,height:26,cursor:"pointer",color:"#fff",fontSize:14}}>✕</button>
+          <button onClick={()=>{setFile(null);setPreviewUrl(null);setMediaType(null);setIsReel(false);}} style={{position:"absolute",top:6,right:6,background:"rgba(0,0,0,.6)",border:"none",borderRadius:"50%",width:26,height:26,cursor:"pointer",color:"#fff",display:"flex",alignItems:"center",justifyContent:"center"}}><Icon name="close" size={13}/></button>
         </div>
       ):(
-        <button onClick={()=>fileRef.current?.click()} style={{width:"100%",height:100,border:"2px dashed #404040",borderRadius:12,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:6,marginBottom:12,background:"none",cursor:"pointer",color:"#525252"}}>
-          <span style={{fontSize:28}}>⬆️</span><span style={{fontSize:13}}>Gallery se Photo ya Video (optional)</span>
+        <button onClick={()=>fileRef.current?.click()} style={{width:"100%",height:100,border:"2px dashed #3A3F47",borderRadius:12,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:6,marginBottom:12,background:"none",cursor:"pointer",color:"#85898F"}}>
+          <Icon name="upload" size={28} color="#2FBF87"/><span style={{fontSize:13}}>Gallery se Photo ya Video (optional)</span>
         </button>
       )}
       <textarea value={caption} onChange={e=>setCaption(e.target.value)} placeholder="Kuch likhein... (text, status, etc.)" rows={4} style={{...inp,marginBottom:12}}/>
       {mediaType==="video"&&(
-        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",background:"#171717",border:"1px solid #262626",borderRadius:12,padding:"10px 14px",marginBottom:12}}>
-          <span style={{color:"#d4d4d4",fontSize:13}}>Reel ki tarah post karein</span>
-          <button onClick={()=>setIsReel(v=>!v)} style={{width:40,height:22,borderRadius:999,border:"none",background:isReel?"#f59e0b":"#404040",cursor:"pointer",position:"relative",transition:"all .2s"}}>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",background:"#16181D",border:"1px solid #242830",borderRadius:12,padding:"10px 14px",marginBottom:12}}>
+          <span style={{color:"#C7CBD1",fontSize:13}}>Reel ki tarah post karein</span>
+          <button onClick={()=>setIsReel(v=>!v)} style={{width:40,height:22,borderRadius:999,border:"none",background:isReel?"#D4AF6A":"#3A3F47",cursor:"pointer",position:"relative",transition:"all .2s"}}>
             <div style={{width:18,height:18,background:"#fff",borderRadius:"50%",position:"absolute",top:2,left:isReel?20:2,transition:"all .2s"}}/>
           </button>
         </div>
       )}
-      <Btn onClick={submit} disabled={busy} style={{width:"100%"}}>{busy?"⟳ Uploading...":"➕ Post Karein"}</Btn>
+      <Btn onClick={submit} disabled={busy} style={{width:"100%"}}>{busy?"Uploading...":"Post Karein"}</Btn>
     </div>
   );
 }
@@ -629,15 +680,15 @@ function GoLiveView({user,onDone,notify}){
     } finally { setBusy(false); }
   }
 
-  const inp={width:"100%",background:"#171717",border:"1px solid #262626",borderRadius:12,padding:"10px 14px",color:"#fafafa",fontSize:13,outline:"none",boxSizing:"border-box"};
+  const inp={width:"100%",background:"#16181D",border:"1px solid #242830",borderRadius:12,padding:"10px 14px",color:"#EDEDEF",fontSize:13,outline:"none",boxSizing:"border-box"};
   return (
     <div style={{padding:16,display:"flex",flexDirection:"column",height:"100%"}}>
       <div style={{position:"relative",borderRadius:16,overflow:"hidden",background:"#000",aspectRatio:"9/14",marginBottom:14}}>
         <video ref={videoRef} autoPlay playsInline muted style={{width:"100%",height:"100%",objectFit:"cover",transform:"scaleX(-1)"}}/>
-        {!previewStream&&<div style={{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center",color:"#525252",fontSize:13}}>Camera load ho rahi hai...</div>}
+        {!previewStream&&<div style={{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center",color:"#85898F",fontSize:13}}>Camera load ho rahi hai...</div>}
       </div>
       <input value={title} onChange={e=>setTitle(e.target.value)} placeholder="Live ka title (optional)" style={{...inp,marginBottom:12}}/>
-      <Btn onClick={startLive} disabled={busy||!previewStream} style={{width:"100%",background:"linear-gradient(135deg,#be123c,#e11d48)",color:"#fff"}}>{busy?"⟳ ":"🔴 "}Live Shuru Karein</Btn>
+      <Btn onClick={startLive} disabled={busy||!previewStream} style={{width:"100%",background:"linear-gradient(135deg,#C0392B,#E5594A)",color:"#fff"}}>Live Shuru Karein</Btn>
     </div>
   );
 }
@@ -789,51 +840,51 @@ room.on(RoomEvent.ParticipantConnected,(p)=>{ setParticipants(prev=>new Set(prev
       <div ref={audioContainerRef} style={{display:"none"}}/>
       
       <div style={{flex:1,background:"#000",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",position:"relative",overflow:"hidden"}}>
-        <button onClick={onBack} style={{position:"absolute",top:12,left:12,background:"rgba(0,0,0,.4)",border:"none",borderRadius:"50%",width:34,height:34,cursor:"pointer",color:"#fff",fontSize:16,zIndex:5}}>←</button>
+        <button onClick={onBack} style={{position:"absolute",top:12,left:12,background:"rgba(0,0,0,.4)",border:"none",borderRadius:"50%",width:34,height:34,cursor:"pointer",color:"#fff",zIndex:5,display:"flex",alignItems:"center",justifyContent:"center"}}><Icon name="back" size={17}/></button>
         <div style={{position:"absolute",top:12,right:12,display:"flex",gap:8,zIndex:5}}>
-          <div style={{background:"rgba(0,0,0,.4)",borderRadius:999,padding:"5px 10px",color:"#fff",fontSize:12}}>👁️ {viewers}</div>
-          {isHost&&!cohostInfo&&<button onClick={()=>setShowInvite(true)} style={{background:"#7c3aed",border:"none",borderRadius:999,padding:"5px 12px",color:"#fff",fontSize:11,fontWeight:700,cursor:"pointer"}}>➕ Co-Host</button>}
-          {isHost&&<button onClick={closeLive} style={{background:"#be123c",border:"none",borderRadius:999,padding:"5px 12px",color:"#fff",fontSize:11,fontWeight:700,cursor:"pointer"}}>Live Khatam</button>}
+          <div style={{background:"rgba(0,0,0,.4)",borderRadius:999,padding:"5px 10px",color:"#fff",fontSize:12,display:"flex",alignItems:"center",gap:5}}><Icon name="eye" size={13} color="#fff"/> {viewers}</div>
+          {isHost&&!cohostInfo&&<button onClick={()=>setShowInvite(true)} style={{background:"#7c3aed",border:"none",borderRadius:999,padding:"5px 12px",color:"#fff",fontSize:11,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",gap:4}}><Icon name="plus" size={12}/> Co-Host</button>}
+          {isHost&&<button onClick={closeLive} style={{background:"#C0392B",border:"none",borderRadius:999,padding:"5px 12px",color:"#fff",fontSize:11,fontWeight:700,cursor:"pointer"}}>Live Khatam</button>}
         </div>
 
 <div style={{width:"100%",height:"100%",display:"flex",flexDirection:hasGuest?"column":undefined}}>
             <video ref={mainVideoRef} autoPlay playsInline muted={isHost} style={{width:"100%",height:hasGuest?"50%":"100%",objectFit:"cover",transform:isHost?"scaleX(-1)":"none"}}/>
-            {hasGuest&&<video ref={guestVideoRef} autoPlay playsInline muted={amCohost} style={{width:"100%",height:"50%",objectFit:"cover",borderTop:"2px solid #262626",transform:amCohost?"scaleX(-1)":"none"}}/>}
+            {hasGuest&&<video ref={guestVideoRef} autoPlay playsInline muted={amCohost} style={{width:"100%",height:"50%",objectFit:"cover",borderTop:"2px solid #242830",transform:amCohost?"scaleX(-1)":"none"}}/>}
           </div>
         
 
         {!connected&&(
-          <div style={{position:"absolute",inset:0,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",background:"linear-gradient(180deg,#1c0010,#0a0a0a)"}}>
-            <div style={{fontSize:48,marginBottom:8}}>🔴</div>
+          <div style={{position:"absolute",inset:0,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",background:"linear-gradient(180deg,#170D0C,#0C0D10)"}}>
+            <div style={{marginBottom:8,display:"flex",justifyContent:"center"}}><Icon name="live" size={44} color="#E5594A"/></div>
             <Avatar name={live.username} size={64} live/>
-            <p style={{marginTop:12,color:"#737373",fontSize:13}}>Stream se connect ho raha hai...</p>
+            <p style={{marginTop:12,color:"#9AA0A6",fontSize:13}}>Stream se connect ho raha hai...</p>
           </div>
         )}
         {connected&&(
           <div style={{position:"absolute",bottom:8,left:12,background:"rgba(0,0,0,.4)",borderRadius:999,padding:"4px 10px",zIndex:5}}>
-            <p style={{margin:0,fontWeight:700,color:"#fafafa",fontSize:13}}>{live.username}{cohostInfo?` & ${cohostInfo.username}`:""}{live.caption?` · ${live.caption}`:""}</p>
+            <p style={{margin:0,fontWeight:700,color:"#EDEDEF",fontSize:13}}>{live.username}{cohostInfo?` & ${cohostInfo.username}`:""}{live.caption?` · ${live.caption}`:""}</p>
           </div>
         )}
 
         {incomingInvite&&(
-          <div style={{position:"absolute",top:60,left:12,right:12,background:"#171717",border:"1px solid #7c3aed",borderRadius:14,padding:12,zIndex:6}}>
-            <p style={{color:"#fafafa",fontSize:13,margin:"0 0 8px"}}>Kisi ne aapko co-host banne ki request bheji hai</p>
+          <div style={{position:"absolute",top:60,left:12,right:12,background:"#16181D",border:"1px solid #7c3aed",borderRadius:14,padding:12,zIndex:6}}>
+            <p style={{color:"#EDEDEF",fontSize:13,margin:"0 0 8px"}}>Kisi ne aapko co-host banne ki request bheji hai</p>
             <div style={{display:"flex",gap:8}}>
-              <Btn onClick={acceptInvite} style={{flex:1,padding:"7px",fontSize:12}}>✓ Accept</Btn>
-              <Btn onClick={rejectInvite} ghost style={{flex:1,padding:"7px",fontSize:12}}>✕ Reject</Btn>
+              <Btn onClick={acceptInvite} style={{flex:1,padding:"7px",fontSize:12}}>Accept</Btn>
+              <Btn onClick={rejectInvite} ghost style={{flex:1,padding:"7px",fontSize:12}}>Reject</Btn>
             </div>
           </div>
         )}
 
         {showInvite&&(
           <div style={{position:"absolute",inset:0,background:"rgba(0,0,0,.7)",zIndex:7,display:"flex",alignItems:"center",justifyContent:"center",padding:20}} onClick={()=>setShowInvite(false)}>
-            <div style={{background:"#171717",border:"1px solid #262626",borderRadius:16,padding:16,width:"100%",maxWidth:320}} onClick={e=>e.stopPropagation()}>
-              <p style={{color:"#fafafa",fontWeight:700,margin:"0 0 10px"}}>Kisko invite karna hai?</p>
-              {otherLiveUsers.length===0&&<p style={{color:"#737373",fontSize:13}}>Abhi koi aur live nahi hai</p>}
+            <div style={{background:"#16181D",border:"1px solid #242830",borderRadius:16,padding:16,width:"100%",maxWidth:320}} onClick={e=>e.stopPropagation()}>
+              <p style={{color:"#EDEDEF",fontWeight:700,margin:"0 0 10px"}}>Kisko invite karna hai?</p>
+              {otherLiveUsers.length===0&&<p style={{color:"#9AA0A6",fontSize:13}}>Abhi koi aur live nahi hai</p>}
               {otherLiveUsers.map(p=>(
-                <button key={p.postId} onClick={()=>inviteUser(p.userId)} style={{display:"flex",alignItems:"center",gap:8,width:"100%",padding:8,background:"#0a0a0a",border:"1px solid #262626",borderRadius:10,marginBottom:6,cursor:"pointer"}}>
+                <button key={p.postId} onClick={()=>inviteUser(p.userId)} style={{display:"flex",alignItems:"center",gap:8,width:"100%",padding:8,background:"#0C0D10",border:"1px solid #242830",borderRadius:10,marginBottom:6,cursor:"pointer"}}>
                   <Avatar name={p.username} size={28} live/>
-                  <span style={{color:"#fafafa",fontSize:13}}>{p.username}</span>
+                  <span style={{color:"#EDEDEF",fontSize:13}}>{p.username}</span>
                 </button>
               ))}
               <Btn ghost onClick={()=>setShowInvite(false)} style={{width:"100%",marginTop:4}}>Band Karein</Btn>
@@ -841,18 +892,18 @@ room.on(RoomEvent.ParticipantConnected,(p)=>{ setParticipants(prev=>new Set(prev
             </div>
         )}
       </div>
-      <div style={{background:"#171717",borderTop:"1px solid #262626",display:"flex",flexDirection:"column",height:"42%"}}>
+      <div style={{background:"#16181D",borderTop:"1px solid #242830",display:"flex",flexDirection:"column",height:"42%"}}>
         <div ref={chatRef} style={{flex:1,overflowY:"auto",padding:"8px 12px",display:"flex",flexDirection:"column",gap:4}}>
           {comments.map((c)=>(
-            <p key={c.id} style={{fontSize:13,color:c.isGift?"#fcd34d":"#e5e5e5",margin:0}}>
-              <span style={{fontWeight:700,color:"#fafafa"}}>{c.username}: </span>{c.text}
+            <p key={c.id} style={{fontSize:13,color:c.isGift?"#D4AF6A":"#EDEDEF",margin:0}}>
+              <span style={{fontWeight:700,color:"#EDEDEF"}}>{c.username}: </span>{c.text}
             </p>
           ))}
         </div>
-        <div style={{display:"flex",gap:6,padding:8,borderTop:"1px solid #262626"}}>
-          <input value={text} onChange={e=>setText(e.target.value)} onKeyDown={e=>e.key==="Enter"&&sendChat()} placeholder="Message likhein..." style={{flex:1,background:"#0a0a0a",border:"1px solid #262626",borderRadius:999,padding:"7px 12px",color:"#fafafa",fontSize:13,outline:"none"}}/>
-          <button onClick={()=>setShowGift(true)} style={{background:"#f59e0b",border:"none",borderRadius:"50%",width:34,height:34,cursor:"pointer",fontSize:14}}>🎁</button>
-          <button onClick={sendChat} style={{background:"#262626",border:"none",borderRadius:"50%",width:34,height:34,cursor:"pointer",fontSize:14}}>📨</button>
+        <div style={{display:"flex",gap:6,padding:8,borderTop:"1px solid #242830"}}>
+          <input value={text} onChange={e=>setText(e.target.value)} onKeyDown={e=>e.key==="Enter"&&sendChat()} placeholder="Message likhein..." style={{flex:1,background:"#0C0D10",border:"1px solid #242830",borderRadius:999,padding:"7px 12px",color:"#EDEDEF",fontSize:13,outline:"none"}}/>
+          <button onClick={()=>setShowGift(true)} style={{background:"#D4AF6A",border:"none",borderRadius:"50%",width:34,height:34,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}><Icon name="gift" size={16} color="#0C0D10"/></button>
+          <button onClick={sendChat} style={{background:"#242830",border:"none",borderRadius:"50%",width:34,height:34,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}><Icon name="send" size={15}/></button>
         </div>
       </div>
       {showGift&&<GiftSheet balance={user.coinBalance} onClose={()=>setShowGift(false)} onSend={sendGift}/>}
@@ -865,18 +916,18 @@ room.on(RoomEvent.ParticipantConnected,(p)=>{ setParticipants(prev=>new Set(prev
 function LiveFeedView({posts,user,onOpenLive,onStartLive}){
   const lives=posts.filter(p=>p.isLive);
   const GoLiveBar=()=>(
-    <div style={{padding:"14px 16px",borderBottom:"1px solid #262626"}}>
-      <button onClick={onStartLive} style={{width:"100%",display:"flex",alignItems:"center",justifyContent:"center",gap:8,background:"linear-gradient(135deg,#be123c,#e11d48)",color:"#fff",border:"none",borderRadius:16,padding:"14px",fontWeight:700,fontSize:15,cursor:"pointer"}}>
-        📡 🔴 Abhi Live Jayen
+    <div style={{padding:"14px 16px",borderBottom:"1px solid #242830"}}>
+      <button onClick={onStartLive} style={{width:"100%",display:"flex",alignItems:"center",justifyContent:"center",gap:8,background:"linear-gradient(135deg,#C0392B,#E5594A)",color:"#fff",border:"none",borderRadius:16,padding:"14px",fontWeight:700,fontSize:15,cursor:"pointer"}}>
+        <Icon name="live" size={17} color="#fff"/> Abhi Live Jayen
       </button>
-      <p style={{textAlign:"center",color:"#525252",fontSize:11,marginTop:6}}>Apni live stream shuru karein aur gifts payen</p>
+      <p style={{textAlign:"center",color:"#85898F",fontSize:11,marginTop:6}}>Apni live stream shuru karein aur gifts payen</p>
     </div>
   );
   if(lives.length===0) return (
     <div style={{display:"flex",flexDirection:"column",height:"100%"}}>
       <GoLiveBar/>
-      <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",color:"#525252"}}>
-        <span style={{fontSize:40,marginBottom:8}}>📡</span><p>Abhi koi live nahi</p><p style={{fontSize:12,marginTop:4,color:"#404040"}}>Pehle aap live ho jayen!</p>
+      <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",color:"#85898F"}}>
+        <Icon name="live" size={38} color="#85898F"/><p>Abhi koi live nahi</p><p style={{fontSize:12,marginTop:4,color:"#3A3F47"}}>Pehle aap live ho jayen!</p>
       </div>
     </div>
   );
@@ -885,10 +936,10 @@ function LiveFeedView({posts,user,onOpenLive,onStartLive}){
       <GoLiveBar/>
       <div style={{padding:12,display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
         {lives.map(p=>(
-          <button key={p.postId} onClick={()=>onOpenLive(p)} style={{background:"#171717",border:"1px solid #7f1d1d",borderRadius:16,padding:12,display:"flex",flexDirection:"column",alignItems:"center",gap:8,cursor:"pointer"}}>
+          <button key={p.postId} onClick={()=>onOpenLive(p)} style={{background:"#16181D",border:"1px solid #4A2320",borderRadius:16,padding:12,display:"flex",flexDirection:"column",alignItems:"center",gap:8,cursor:"pointer"}}>
             <Avatar name={p.username} size={52} live/>
-            <p style={{fontWeight:700,color:"#fafafa",fontSize:13,margin:0}}>{p.username}</p>
-            <span style={{background:"#be123c",color:"#fff",fontSize:10,padding:"2px 8px",borderRadius:999,fontWeight:700}}>● LIVE — Join Karein</span>
+            <p style={{fontWeight:700,color:"#EDEDEF",fontSize:13,margin:0}}>{p.username}</p>
+            <span style={{background:"#C0392B",color:"#fff",fontSize:10,padding:"2px 8px",borderRadius:999,fontWeight:700}}>● LIVE — Join Karein</span>
           </button>
         ))}
       </div>
@@ -916,26 +967,26 @@ function SearchView({user,notify,onOpenChat}){
     }catch(e){ notify("Request nahi bhej saka"); }
   }
   const show=results.length>0?results:suggested;
-  const inp={flex:1,background:"#171717",border:"1px solid #262626",borderRadius:12,padding:"10px 14px",color:"#fafafa",fontSize:13,outline:"none"};
+  const inp={flex:1,background:"#16181D",border:"1px solid #242830",borderRadius:12,padding:"10px 14px",color:"#EDEDEF",fontSize:13,outline:"none"};
   return (
     <div style={{padding:14}}>
       <div style={{display:"flex",gap:8,marginBottom:14}}>
         <input value={query} onChange={e=>setQuery(e.target.value)} onKeyDown={e=>e.key==="Enter"&&doSearch()} placeholder="Username se dhoondein..." style={inp}/>
-        <button onClick={doSearch} style={{background:"#f59e0b",border:"none",borderRadius:12,padding:"0 14px",cursor:"pointer",fontWeight:700,fontSize:16}}>🔍</button>
+        <button onClick={doSearch} style={{background:"#D4AF6A",border:"none",borderRadius:12,padding:"0 14px",cursor:"pointer",display:"flex",alignItems:"center",color:"#221705"}}><Icon name="search" size={17} color="#221705" strokeWidth={2}/></button>
       </div>
       <div style={{display:"flex",flexDirection:"column",gap:8}}>
         {show.map(u=>(
-          <div key={u.userId} style={{display:"flex",alignItems:"center",gap:10,padding:10,background:"#171717",borderRadius:14}}>
+          <div key={u.userId} style={{display:"flex",alignItems:"center",gap:10,padding:10,background:"#16181D",borderRadius:14}}>
             <Avatar name={u.username} size={38} pic={u.profilePic} verified={u.verified}/>
             <div style={{flex:1}}>
-              <p style={{fontWeight:700,color:"#fafafa",fontSize:13,margin:0}}>{u.username}{u.verified?" ✅":""}</p>
-              {u.bio&&<p style={{color:"#525252",fontSize:11,margin:0,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",maxWidth:150}}>{u.bio}</p>}
+              <p style={{fontWeight:700,color:"#EDEDEF",fontSize:13,margin:0}}>{u.username}{u.verified&&<Icon name="verified" size={12} color="#2FBF87" fill="#2FBF87" strokeWidth={0}/>}</p>
+              {u.bio&&<p style={{color:"#85898F",fontSize:11,margin:0,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",maxWidth:150}}>{u.bio}</p>}
             </div>
-            <button onClick={()=>onOpenChat({partnerId:u.userId,partnerUsername:u.username})} style={{background:"#262626",border:"none",borderRadius:"50%",width:32,height:32,cursor:"pointer",fontSize:14}}>📨</button>
-            <button onClick={()=>sendFriendReq(u)} disabled={sentIds[u.userId]} style={{background:"rgba(245,158,11,.2)",border:"none",borderRadius:"50%",width:32,height:32,cursor:sentIds[u.userId]?"default":"pointer",fontSize:14,opacity:sentIds[u.userId]?0.4:1}}>{sentIds[u.userId]?"✓":"➕"}</button>
+            <button onClick={()=>onOpenChat({partnerId:u.userId,partnerUsername:u.username})} style={{background:"#242830",border:"none",borderRadius:"50%",width:32,height:32,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}><Icon name="send" size={14}/></button>
+            <button onClick={()=>sendFriendReq(u)} disabled={sentIds[u.userId]} style={{background:"rgba(47,191,135,.2)",border:"none",borderRadius:"50%",width:32,height:32,cursor:sentIds[u.userId]?"default":"pointer",fontSize:14,opacity:sentIds[u.userId]?0.4:1}}>{sentIds[u.userId]?<Icon name="check" size={13}/>:<Icon name="plus" size={13}/>}</button>
           </div>
         ))}
-        {show.length===0&&<p style={{color:"#525252",fontSize:13,textAlign:"center",padding:"24px 0"}}>Koi user nahi mila</p>}
+        {show.length===0&&<p style={{color:"#85898F",fontSize:13,textAlign:"center",padding:"24px 0"}}>Koi user nahi mila</p>}
       </div>
     </div>
   );
@@ -965,43 +1016,43 @@ function InboxView({user,onOpenChat,notify,notifications}){
 
   return (
     <div style={{display:"flex",flexDirection:"column",height:"100%"}}>
-      <div style={{display:"flex",background:"#171717",borderRadius:12,padding:4,margin:14,gap:4}}>
+      <div style={{display:"flex",background:"#16181D",borderRadius:12,padding:4,margin:14,gap:4}}>
         {[["msgs","Messages"],["requests",`Requests${requests.length?` (${requests.length})`:""}`],["friends","Friends"]].map(([id,label])=>(
-          <button key={id} onClick={()=>setTab(id)} style={{flex:1,padding:8,borderRadius:8,border:"none",fontWeight:700,fontSize:11,background:tab===id?"#fafafa":"transparent",color:tab===id?"#0a0a0a":"#737373",cursor:"pointer"}}>{label}</button>
+          <button key={id} onClick={()=>setTab(id)} style={{flex:1,padding:8,borderRadius:8,border:"none",fontWeight:700,fontSize:11,background:tab===id?"#EDEDEF":"transparent",color:tab===id?"#0C0D10":"#9AA0A6",cursor:"pointer"}}>{label}</button>
         ))}
       </div>
       <div style={{flex:1,overflowY:"auto",padding:"0 14px 14px"}}>
         {tab==="msgs"&&(
-          convs.length===0?<p style={{color:"#525252",fontSize:13,textAlign:"center",padding:"40px 0"}}>Koi message nahi</p>:
+          convs.length===0?<p style={{color:"#85898F",fontSize:13,textAlign:"center",padding:"40px 0"}}>Koi message nahi</p>:
           convs.map(c=>(
-            <button key={c.partnerId} onClick={()=>onOpenChat({partnerId:c.partnerId,partnerUsername:c.partnerUsername})} style={{display:"flex",alignItems:"center",gap:10,width:"100%",padding:10,background:"#171717",borderRadius:14,marginBottom:8,border:"none",cursor:"pointer",textAlign:"left"}}>
+            <button key={c.partnerId} onClick={()=>onOpenChat({partnerId:c.partnerId,partnerUsername:c.partnerUsername})} style={{display:"flex",alignItems:"center",gap:10,width:"100%",padding:10,background:"#16181D",borderRadius:14,marginBottom:8,border:"none",cursor:"pointer",textAlign:"left"}}>
               <Avatar name={c.partnerUsername} size={40} pic={c.partnerProfilePic}/>
               <div style={{flex:1,overflow:"hidden"}}>
-                <p style={{fontWeight:700,color:"#fafafa",fontSize:13,margin:0}}>{c.partnerUsername}</p>
-                <p style={{color:"#737373",fontSize:12,margin:0,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{c.lastText}</p>
+                <p style={{fontWeight:700,color:"#EDEDEF",fontSize:13,margin:0}}>{c.partnerUsername}</p>
+                <p style={{color:"#9AA0A6",fontSize:12,margin:0,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{c.lastText}</p>
               </div>
-              <span style={{color:"#525252",fontSize:10}}>{timeAgo(c.lastTs)}</span>
+              <span style={{color:"#85898F",fontSize:10}}>{timeAgo(c.lastTs)}</span>
             </button>
           ))
         )}
         {tab==="requests"&&(
-          requests.length===0?<p style={{color:"#525252",fontSize:13,textAlign:"center",padding:"40px 0"}}>Koi request nahi</p>:
+          requests.length===0?<p style={{color:"#85898F",fontSize:13,textAlign:"center",padding:"40px 0"}}>Koi request nahi</p>:
           requests.map(r=>(
-            <div key={r.id} style={{display:"flex",alignItems:"center",gap:10,padding:10,background:"#171717",borderRadius:14,marginBottom:8}}>
+            <div key={r.id} style={{display:"flex",alignItems:"center",gap:10,padding:10,background:"#16181D",borderRadius:14,marginBottom:8}}>
               <Avatar name={r.fromUsername} size={38} pic={r.profilePic} verified={r.verified}/>
-              <p style={{flex:1,fontWeight:700,color:"#fafafa",fontSize:13,margin:0}}>{r.fromUsername}</p>
-              <button onClick={()=>respond(r,true)} style={{background:"#16a34a",border:"none",borderRadius:8,padding:"6px 10px",color:"#fff",fontSize:11,fontWeight:700,cursor:"pointer"}}>✓</button>
-              <button onClick={()=>respond(r,false)} style={{background:"#404040",border:"none",borderRadius:8,padding:"6px 10px",color:"#fff",fontSize:11,fontWeight:700,cursor:"pointer"}}>✕</button>
+              <p style={{flex:1,fontWeight:700,color:"#EDEDEF",fontSize:13,margin:0}}>{r.fromUsername}</p>
+              <button onClick={()=>respond(r,true)} style={{background:"#2FBF87",border:"none",borderRadius:8,padding:"6px 10px",color:"#fff",fontSize:11,fontWeight:700,cursor:"pointer",display:"flex"}}><Icon name="check" size={13}/></button>
+              <button onClick={()=>respond(r,false)} style={{background:"#3A3F47",border:"none",borderRadius:8,padding:"6px 10px",color:"#fff",fontSize:11,fontWeight:700,cursor:"pointer",display:"flex"}}><Icon name="close" size={13}/></button>
             </div>
           ))
         )}
         {tab==="friends"&&(
-          friends.length===0?<p style={{color:"#525252",fontSize:13,textAlign:"center",padding:"40px 0"}}>Abhi koi friend nahi</p>:
+          friends.length===0?<p style={{color:"#85898F",fontSize:13,textAlign:"center",padding:"40px 0"}}>Abhi koi friend nahi</p>:
           friends.map(f=>(
-            <button key={f.userId} onClick={()=>onOpenChat({partnerId:f.userId,partnerUsername:f.username})} style={{display:"flex",alignItems:"center",gap:10,width:"100%",padding:10,background:"#171717",borderRadius:14,marginBottom:8,border:"none",cursor:"pointer",textAlign:"left"}}>
+            <button key={f.userId} onClick={()=>onOpenChat({partnerId:f.userId,partnerUsername:f.username})} style={{display:"flex",alignItems:"center",gap:10,width:"100%",padding:10,background:"#16181D",borderRadius:14,marginBottom:8,border:"none",cursor:"pointer",textAlign:"left"}}>
               <Avatar name={f.username} size={38} pic={f.profilePic} verified={f.verified}/>
-              <p style={{flex:1,fontWeight:700,color:"#fafafa",fontSize:13,margin:0}}>{f.username}</p>
-              <span style={{fontSize:16}}>📨</span>
+              <p style={{flex:1,fontWeight:700,color:"#EDEDEF",fontSize:13,margin:0}}>{f.username}</p>
+              <Icon name="send" size={15}/>
             </button>
           ))
         )}
@@ -1027,24 +1078,24 @@ function ChatView({user,partner,onBack}){
   }
   return (
     <div style={{display:"flex",flexDirection:"column",height:"100%"}}>
-      <div style={{display:"flex",alignItems:"center",gap:10,padding:"10px 14px",borderBottom:"1px solid #262626",background:"#0a0a0a"}}>
-        <button onClick={onBack} style={{background:"none",border:"none",color:"#737373",fontSize:20,cursor:"pointer"}}>←</button>
+      <div style={{display:"flex",alignItems:"center",gap:10,padding:"10px 14px",borderBottom:"1px solid #242830",background:"#0C0D10"}}>
+        <button onClick={onBack} style={{background:"none",border:"none",color:"#9AA0A6",cursor:"pointer",display:"flex"}}><Icon name="back" size={20}/></button>
         <Avatar name={partner.partnerUsername} size={34}/>
-        <p style={{fontWeight:700,color:"#fafafa",fontSize:14,margin:0}}>{partner.partnerUsername}</p>
+        <p style={{fontWeight:700,color:"#EDEDEF",fontSize:14,margin:0}}>{partner.partnerUsername}</p>
       </div>
       <div ref={chatRef} style={{flex:1,overflowY:"auto",padding:"12px 14px",display:"flex",flexDirection:"column",gap:6}}>
-        {msgs.length===0&&<p style={{color:"#525252",fontSize:13,textAlign:"center",padding:"24px 0"}}>Koi message nahi — pehle aap karein!</p>}
+        {msgs.length===0&&<p style={{color:"#85898F",fontSize:13,textAlign:"center",padding:"24px 0"}}>Koi message nahi — pehle aap karein!</p>}
         {msgs.map(m=>(
           <div key={m.id} style={{display:"flex",justifyContent:m.fromId===user.userId?"flex-end":"flex-start"}}>
-            <div style={{maxWidth:"75%",padding:"8px 12px",borderRadius:16,fontSize:13,background:m.fromId===user.userId?"#f59e0b":"#171717",color:m.fromId===user.userId?"#0a0a0a":"#e5e5e5"}}>
+            <div style={{maxWidth:"75%",padding:"8px 12px",borderRadius:16,fontSize:13,background:m.fromId===user.userId?"#D4AF6A":"#16181D",color:m.fromId===user.userId?"#0C0D10":"#EDEDEF"}}>
               {m.text}<span style={{display:"block",fontSize:9,opacity:.6,marginTop:2,textAlign:"right"}}>{timeAgo(m.ts)}</span>
             </div>
           </div>
         ))}
       </div>
-      <div style={{display:"flex",gap:8,padding:10,borderTop:"1px solid #262626"}}>
-        <input value={text} onChange={e=>setText(e.target.value)} onKeyDown={e=>e.key==="Enter"&&sendMsg()} placeholder="Message likhein..." style={{flex:1,background:"#171717",border:"1px solid #262626",borderRadius:999,padding:"8px 14px",color:"#fafafa",fontSize:13,outline:"none"}}/>
-        <button onClick={sendMsg} style={{background:"#f59e0b",border:"none",borderRadius:"50%",width:36,height:36,cursor:"pointer",fontSize:15}}>📨</button>
+      <div style={{display:"flex",gap:8,padding:10,borderTop:"1px solid #242830"}}>
+        <input value={text} onChange={e=>setText(e.target.value)} onKeyDown={e=>e.key==="Enter"&&sendMsg()} placeholder="Message likhein..." style={{flex:1,background:"#16181D",border:"1px solid #242830",borderRadius:999,padding:"8px 14px",color:"#EDEDEF",fontSize:13,outline:"none"}}/>
+        <button onClick={sendMsg} style={{background:"#D4AF6A",border:"none",borderRadius:"50%",width:36,height:36,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}><Icon name="send" size={16} color="#0C0D10"/></button>
       </div>
     </div>
   );
@@ -1085,40 +1136,40 @@ function WalletView({user,notify,onRefreshUser}){
       notify(e?.message==="INSUFFICIENT_COINS"?"Itne coins aapke paas nahi":"Request nahi bhej saka");
     } finally { setBusy(false); }
   }
-  const inp={width:"100%",background:"#171717",border:"1px solid #262626",borderRadius:12,padding:"10px 14px",color:"#fafafa",fontSize:13,outline:"none",boxSizing:"border-box"};
+  const inp={width:"100%",background:"#16181D",border:"1px solid #242830",borderRadius:12,padding:"10px 14px",color:"#EDEDEF",fontSize:13,outline:"none",boxSizing:"border-box"};
   return (
     <div style={{padding:14,overflowY:"auto"}}>
       <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}>
-        <span style={{fontSize:18}}>⭐</span>
-        <span style={{fontFamily:"monospace",fontSize:24,fontWeight:900,color:"#f59e0b"}}>{user.coinBalance}</span>
-        <span style={{color:"#525252",fontSize:13}}>coins</span>
+        <Icon name="star" size={17} color="#D4AF6A" fill="#D4AF6A" strokeWidth={1.3}/>
+        <span style={{fontFamily:"monospace",fontSize:24,fontWeight:900,color:"#D4AF6A"}}>{user.coinBalance}</span>
+        <span style={{color:"#85898F",fontSize:13}}>coins</span>
       </div>
-      <div style={{background:"#171717",border:"1px solid #262626",borderRadius:12,padding:10,marginBottom:12,fontSize:12,color:"#737373"}}>
+      <div style={{background:"#16181D",border:"1px solid #242830",borderRadius:12,padding:10,marginBottom:12,fontSize:12,color:"#9AA0A6"}}>
         Buy: Rs.20 = 1 coin (min Rs.3,000) | Cash Out: 1 coin = Rs.12
       </div>
-      <div style={{display:"flex",background:"#171717",borderRadius:12,padding:4,marginBottom:12,gap:4}}>
-        {["buy","withdraw"].map(t=><button key={t} onClick={()=>setTab(t)} style={{flex:1,padding:8,borderRadius:8,border:"none",fontWeight:700,fontSize:12,background:tab===t?"#fafafa":"transparent",color:tab===t?"#0a0a0a":"#737373",cursor:"pointer"}}>{t==="buy"?"Coins Khareedein":"Cash Out"}</button>)}
+      <div style={{display:"flex",background:"#16181D",borderRadius:12,padding:4,marginBottom:12,gap:4}}>
+        {["buy","withdraw"].map(t=><button key={t} onClick={()=>setTab(t)} style={{flex:1,padding:8,borderRadius:8,border:"none",fontWeight:700,fontSize:12,background:tab===t?"#EDEDEF":"transparent",color:tab===t?"#0C0D10":"#9AA0A6",cursor:"pointer"}}>{t==="buy"?"Coins Khareedein":"Cash Out"}</button>)}
       </div>
       {tab==="buy"?(
         <div style={{display:"flex",flexDirection:"column",gap:10}}>
           <div style={{display:"flex",gap:6}}>
-            {Object.keys(OWNER_PAYMENT).map(m=><button key={m} onClick={()=>setMethod(m)} style={{flex:1,padding:"8px 4px",borderRadius:10,border:`1px solid ${method===m?"#f59e0b":"#262626"}`,background:"none",color:method===m?"#f59e0b":"#737373",fontWeight:700,fontSize:11,cursor:"pointer"}}>{m}</button>)}
+            {Object.keys(OWNER_PAYMENT).map(m=><button key={m} onClick={()=>setMethod(m)} style={{flex:1,padding:"8px 4px",borderRadius:10,border:`1px solid ${method===m?"#D4AF6A":"#242830"}`,background:"none",color:method===m?"#D4AF6A":"#9AA0A6",fontWeight:700,fontSize:11,cursor:"pointer"}}>{m}</button>)}
           </div>
-          <div style={{background:"#171717",border:"1px solid rgba(245,158,11,.4)",borderRadius:12,padding:12}}>
-            <p style={{color:"#737373",fontSize:11,margin:"0 0 4px"}}>Is number par payment bhejein:</p>
-            <p style={{fontFamily:"monospace",fontSize:18,fontWeight:900,color:"#fafafa",margin:0}}>{OWNER_PAYMENT[method]}</p>
+          <div style={{background:"#16181D",border:"1px solid rgba(212,175,106,.4)",borderRadius:12,padding:12}}>
+            <p style={{color:"#9AA0A6",fontSize:11,margin:"0 0 4px"}}>Is number par payment bhejein:</p>
+            <p style={{fontFamily:"monospace",fontSize:18,fontWeight:900,color:"#EDEDEF",margin:0}}>{OWNER_PAYMENT[method]}</p>
           </div>
           <input value={amount} onChange={e=>setAmount(e.target.value)} type="number" placeholder="Aap ne kitne Rs. bheje?" style={inp}/>
-          {amount&&!isNaN(amount)&&<p style={{color:"#f59e0b",fontSize:12,fontFamily:"monospace"}}>≈ {Math.floor(parseFloat(amount)*TOPUP_COINS_PER_PKR)} coins milengi</p>}
+          {amount&&!isNaN(amount)&&<p style={{color:"#D4AF6A",fontSize:12,fontFamily:"monospace"}}>≈ {Math.floor(parseFloat(amount)*TOPUP_COINS_PER_PKR)} coins milengi</p>}
           <input value={reference} onChange={e=>setReference(e.target.value)} placeholder="Transaction ID / reference (optional)" style={inp}/>
           <Btn onClick={submitTopup} disabled={busy} style={{width:"100%"}}>Maine Payment Bhej Diya</Btn>
         </div>
       ):(
         <div style={{display:"flex",flexDirection:"column",gap:10}}>
           <input value={withdrawCoins} onChange={e=>setWithdrawCoins(e.target.value)} type="number" placeholder="Kitne coins nikalwane hain?" style={inp}/>
-          {withdrawCoins&&!isNaN(withdrawCoins)&&<p style={{color:"#f59e0b",fontSize:12,fontFamily:"monospace"}}>≈ Rs. {(parseInt(withdrawCoins,10)/WITHDRAW_COINS_PER_PKR).toFixed(0)} milenge</p>}
+          {withdrawCoins&&!isNaN(withdrawCoins)&&<p style={{color:"#D4AF6A",fontSize:12,fontFamily:"monospace"}}>≈ Rs. {(parseInt(withdrawCoins,10)/WITHDRAW_COINS_PER_PKR).toFixed(0)} milenge</p>}
           <div style={{display:"flex",gap:6}}>
-            {Object.keys(OWNER_PAYMENT).map(m=><button key={m} onClick={()=>setMethod(m)} style={{flex:1,padding:"8px 4px",borderRadius:10,border:`1px solid ${method===m?"#f59e0b":"#262626"}`,background:"none",color:method===m?"#f59e0b":"#737373",fontWeight:700,fontSize:11,cursor:"pointer"}}>{m}</button>)}
+            {Object.keys(OWNER_PAYMENT).map(m=><button key={m} onClick={()=>setMethod(m)} style={{flex:1,padding:"8px 4px",borderRadius:10,border:`1px solid ${method===m?"#D4AF6A":"#242830"}`,background:"none",color:method===m?"#D4AF6A":"#9AA0A6",fontWeight:700,fontSize:11,cursor:"pointer"}}>{m}</button>)}
           </div>
           <input value={withdrawNumber} onChange={e=>setWithdrawNumber(e.target.value)} placeholder="Aap ka account number" style={inp}/>
           <Btn onClick={submitWithdraw} disabled={busy} style={{width:"100%"}}>Cash Out Request</Btn>
@@ -1126,14 +1177,14 @@ function WalletView({user,notify,onRefreshUser}){
       )}
       {myTx.length>0&&(
         <div style={{marginTop:18}}>
-          <h3 style={{color:"#fafafa",fontSize:14,margin:"0 0 8px"}}>History</h3>
+          <h3 style={{color:"#EDEDEF",fontSize:14,margin:"0 0 8px"}}>History</h3>
           {myTx.map(t=>(
-            <div key={t.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:"1px solid #262626"}}>
+            <div key={t.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:"1px solid #242830"}}>
               <div>
-                <p style={{margin:0,color:"#d4d4d4",fontSize:12,fontWeight:600}}>{t.type==="topup"?"Top-up":"Withdraw"} • Rs.{t.amountPKR}</p>
-                <p style={{margin:0,color:"#525252",fontSize:10}}>{timeAgo(t.createdAt)} pehle</p>
+                <p style={{margin:0,color:"#C7CBD1",fontSize:12,fontWeight:600}}>{t.type==="topup"?"Top-up":"Withdraw"} • Rs.{t.amountPKR}</p>
+                <p style={{margin:0,color:"#85898F",fontSize:10}}>{timeAgo(t.createdAt)} pehle</p>
               </div>
-              <span style={{fontSize:10,fontWeight:700,padding:"2px 8px",borderRadius:999,background:t.status==="approved"?"rgba(34,197,94,.15)":t.status==="rejected"?"rgba(239,68,68,.15)":"rgba(245,158,11,.15)",color:t.status==="approved"?"#4ade80":t.status==="rejected"?"#f87171":"#fbbf24"}}>{t.status}</span>
+              <span style={{fontSize:10,fontWeight:700,padding:"2px 8px",borderRadius:999,background:t.status==="approved"?"rgba(34,197,94,.15)":t.status==="rejected"?"rgba(239,68,68,.15)":"rgba(212,175,106,.15)",color:t.status==="approved"?"#4ade80":t.status==="rejected"?"#f87171":"#fbbf24"}}>{t.status}</span>
             </div>
           ))}
         </div>
@@ -1188,7 +1239,7 @@ function ProfileView({user,onLogout,onGoWallet,notify,onUserUpdate}){
 
   const myMediaPosts=myPosts.filter(p=>!p.isReel);
   const myReels=myPosts.filter(p=>p.isReel);
-  const inp={width:"100%",background:"#0a0a0a",border:"1px solid #262626",borderRadius:10,padding:"8px 12px",color:"#fafafa",fontSize:13,outline:"none",boxSizing:"border-box"};
+  const inp={width:"100%",background:"#0C0D10",border:"1px solid #242830",borderRadius:10,padding:"8px 12px",color:"#EDEDEF",fontSize:13,outline:"none",boxSizing:"border-box"};
 
   return (
     <div style={{padding:16}}>
@@ -1196,36 +1247,36 @@ function ProfileView({user,onLogout,onGoWallet,notify,onUserUpdate}){
         <div style={{position:"relative"}}>
           <Avatar name={user.username} size={64} pic={user.profilePic} verified={user.verified}/>
           <input ref={avatarRef} type="file" accept="image/*" style={{display:"none"}} onChange={onAvatarChange}/>
-          <button onClick={()=>avatarRef.current?.click()} disabled={uploadingAvatar} style={{position:"absolute",bottom:-2,right:-2,background:"#f59e0b",border:"2px solid #0a0a0a",borderRadius:"50%",width:24,height:24,cursor:"pointer",fontSize:11,display:"flex",alignItems:"center",justifyContent:"center"}}>{uploadingAvatar?"⟳":"📷"}</button>
+          <button onClick={()=>avatarRef.current?.click()} disabled={uploadingAvatar} style={{position:"absolute",bottom:-2,right:-2,background:"#D4AF6A",border:"2px solid #0C0D10",borderRadius:"50%",width:24,height:24,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>{uploadingAvatar?"…":<Icon name="camera" size={12} color="#0C0D10"/>}</button>
         </div>
         <div style={{flex:1}}>
-          <p style={{fontWeight:800,color:"#fafafa",fontSize:17,margin:0,display:"flex",alignItems:"center",gap:5}}>{user.username}{user.verified&&<span style={{fontSize:13}}>✅</span>}</p>
-          {!editing&&<p style={{color:"#737373",fontSize:12,margin:"3px 0 0"}}>{user.bio||"Bio nahi hai"}</p>}
+          <p style={{fontWeight:800,color:"#EDEDEF",fontSize:17,margin:0,display:"flex",alignItems:"center",gap:5}}>{user.username}{user.verified&&<Icon name="verified" size={15} color="#2FBF87" fill="#2FBF87" strokeWidth={0}/>}</p>
+          {!editing&&<p style={{color:"#9AA0A6",fontSize:12,margin:"3px 0 0"}}>{user.bio||"Bio nahi hai"}</p>}
         </div>
-        <button onClick={()=>setEditing(v=>!v)} style={{background:"none",border:"none",color:"#737373",fontSize:18,cursor:"pointer"}}>✏️</button>
+        <button onClick={()=>setEditing(v=>!v)} style={{background:"none",border:"none",color:"#9AA0A6",cursor:"pointer",display:"flex"}}><Icon name="edit" size={17}/></button>
       </div>
 
       {editing&&(
-        <div style={{background:"#171717",border:"1px solid #262626",borderRadius:14,padding:12,marginBottom:14}}>
+        <div style={{background:"#16181D",border:"1px solid #242830",borderRadius:14,padding:12,marginBottom:14}}>
           <textarea value={bio} onChange={e=>setBio(e.target.value)} placeholder="Bio likhein..." rows={2} style={{...inp,marginBottom:8,resize:"none"}}/>
           <Btn onClick={saveBio} style={{width:"100%",padding:"8px",marginBottom:10}}>Bio Save Karein</Btn>
           <input value={newPass} onChange={e=>setNewPass(e.target.value)} type="password" placeholder="Naya password" style={{...inp,marginBottom:8}}/>
-          <Btn onClick={changePassword} style={{width:"100%",padding:"9px"}}>🔒 Password Badlein</Btn>
+          <Btn onClick={changePassword} style={{width:"100%",padding:"9px",display:"flex",alignItems:"center",justifyContent:"center",gap:7}}><Icon name="lock" size={15} color="currentColor"/> Password Badlein</Btn>
         </div>
       )}
 
-      <button onClick={onGoWallet} style={{width:"100%",display:"flex",alignItems:"center",justifyContent:"space-between",background:"#171717",border:"1px solid #f59e0b",borderRadius:12,padding:"12px 14px",cursor:"pointer",marginBottom:12}}>
-        <span style={{color:"#fafafa",fontSize:13,fontWeight:600}}>💰 Wallet</span>
-        <span style={{color:"#f59e0b",fontWeight:700,fontFamily:"monospace"}}>{user.coinBalance} coins</span>
+      <button onClick={onGoWallet} style={{width:"100%",display:"flex",alignItems:"center",justifyContent:"space-between",background:"#16181D",border:"1px solid #D4AF6A",borderRadius:12,padding:"12px 14px",cursor:"pointer",marginBottom:12}}>
+        <span style={{color:"#EDEDEF",fontSize:13,fontWeight:600,display:"flex",alignItems:"center",gap:6}}><Icon name="wallet" size={15} color="#D4AF6A"/> Wallet</span>
+        <span style={{color:"#D4AF6A",fontWeight:700,fontFamily:"monospace"}}>{user.coinBalance} coins</span>
       </button>
 
       <div style={{display:"flex",gap:16,marginBottom:10}}>
-        <span style={{color:"#737373",fontSize:13}}>Posts <span style={{color:"#f59e0b",fontWeight:700}}>{myMediaPosts.length}</span></span>
-        <span style={{color:"#737373",fontSize:13}}>Reels <span style={{color:"#f59e0b",fontWeight:700}}>{myReels.length}</span></span>
+        <span style={{color:"#9AA0A6",fontSize:13}}>Posts <span style={{color:"#D4AF6A",fontWeight:700}}>{myMediaPosts.length}</span></span>
+        <span style={{color:"#9AA0A6",fontSize:13}}>Reels <span style={{color:"#D4AF6A",fontWeight:700}}>{myReels.length}</span></span>
       </div>
       <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:6}}>
         {myPosts.map(p=>(
-          <button key={p.postId} onClick={()=>p.mediaData?setMediaPost(p):null} onContextMenu={(e)=>{e.preventDefault();setConfirmDelete(p);}} style={{position:"relative",aspectRatio:"1",background:"#171717",border:"1px solid #262626",borderRadius:10,overflow:"hidden",display:"flex",alignItems:"center",justifyContent:"center",cursor:p.mediaData?"pointer":"default",padding:0}}>
+          <button key={p.postId} onClick={()=>p.mediaData?setMediaPost(p):null} onContextMenu={(e)=>{e.preventDefault();setConfirmDelete(p);}} style={{position:"relative",aspectRatio:"1",background:"#16181D",border:"1px solid #242830",borderRadius:10,overflow:"hidden",display:"flex",alignItems:"center",justifyContent:"center",cursor:p.mediaData?"pointer":"default",padding:0}}>
             {p.mediaData&&p.mediaType==="image"?<img src={p.mediaData} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>
             :p.mediaData&&p.mediaType==="video"?(
               <>
@@ -1233,14 +1284,14 @@ function ProfileView({user,onLogout,onGoWallet,notify,onUserUpdate}){
                 <span style={{position:"absolute",top:4,right:4,fontSize:12}}>▶️</span>
               </>
             )
-            :<p style={{fontSize:10,color:"#a3a3a3",textAlign:"center",padding:6,margin:0,overflow:"hidden",display:"-webkit-box",WebkitLineClamp:4,WebkitBoxOrient:"vertical"}}>{p.caption?.slice(0,80)||"Post"}</p>}
-            <button onClick={(e)=>{e.stopPropagation();setConfirmDelete(p);}} style={{position:"absolute",top:2,left:2,background:"rgba(0,0,0,.6)",border:"none",borderRadius:6,width:20,height:20,color:"#fff",fontSize:10,cursor:"pointer"}}>🗑️</button>
+            :<p style={{fontSize:10,color:"#9AA0A6",textAlign:"center",padding:6,margin:0,overflow:"hidden",display:"-webkit-box",WebkitLineClamp:4,WebkitBoxOrient:"vertical"}}>{p.caption?.slice(0,80)||"Post"}</p>}
+            <button onClick={(e)=>{e.stopPropagation();setConfirmDelete(p);}} style={{position:"absolute",top:2,left:2,background:"rgba(0,0,0,.6)",border:"none",borderRadius:6,width:20,height:20,color:"#fff",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}><Icon name="trash" size={11}/></button>
           </button>
         ))}
-        {myPosts.length===0&&<p style={{gridColumn:"1/-1",textAlign:"center",color:"#525252",fontSize:12,padding:"20px 0"}}>Koi post nahi</p>}
+        {myPosts.length===0&&<p style={{gridColumn:"1/-1",textAlign:"center",color:"#85898F",fontSize:12,padding:"20px 0"}}>Koi post nahi</p>}
       </div>
 
-      <Btn onClick={onLogout} ghost style={{width:"100%",padding:"9px",marginTop:18}}>🚪 Logout</Btn>
+      <Btn onClick={onLogout} ghost style={{width:"100%",padding:"9px",marginTop:18,display:"flex",alignItems:"center",justifyContent:"center",gap:7}}><Icon name="logout" size={15}/> Logout</Btn>
 
       {mediaPost&&<MediaViewerModal post={mediaPost} onClose={()=>setMediaPost(null)}/>}
       {confirmDelete&&<ConfirmDialog title="Post delete karein?" message="Ye post hamesha ke liye delete ho jayegi." onConfirm={()=>handleDelete(confirmDelete)} onCancel={()=>setConfirmDelete(null)}/>}
@@ -1265,37 +1316,37 @@ function AdminPanel({onExit,notify}){
   return (
     <div style={{padding:14,overflowY:"auto",height:"100%"}}>
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14}}>
-        <h2 style={{color:"#fafafa",fontWeight:900,margin:0,fontSize:18}}>🛡️ Admin Panel</h2>
-        <button onClick={onExit} style={{color:"#737373",background:"none",border:"none",cursor:"pointer",fontSize:13}}>Exit</button>
+        <h2 style={{color:"#EDEDEF",fontWeight:800,margin:0,fontSize:18,display:"flex",alignItems:"center",gap:8,fontFamily:"'Sora',sans-serif"}}><Icon name="shield" size={19} color="#D4AF6A"/> Admin Panel</h2>
+        <button onClick={onExit} style={{color:"#9AA0A6",background:"none",border:"none",cursor:"pointer",fontSize:13}}>Exit</button>
       </div>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:16}}>
-        {[["Total Wasool","Rs."+totalIn.toFixed(0),"#34d399"],["Total Pay-out","Rs."+totalOut.toFixed(0),"#fb7185"]].map(([l,v,c])=>(
-          <div key={l} style={{background:"#171717",border:"1px solid #262626",borderRadius:12,padding:12}}>
-            <p style={{color:"#525252",fontSize:11,margin:0}}>{l}</p>
+        {[["Total Wasool","Rs."+totalIn.toFixed(0),"#3ECF9A"],["Total Pay-out","Rs."+totalOut.toFixed(0),"#F0796B"]].map(([l,v,c])=>(
+          <div key={l} style={{background:"#16181D",border:"1px solid #242830",borderRadius:12,padding:12}}>
+            <p style={{color:"#85898F",fontSize:11,margin:0}}>{l}</p>
             <p style={{fontFamily:"monospace",fontSize:18,fontWeight:900,color:c,margin:0}}>{v}</p>
           </div>
         ))}
-        <div style={{background:"#171717",border:"1px solid #f59e0b",borderRadius:12,padding:12,gridColumn:"1/-1"}}>
-          <p style={{color:"#525252",fontSize:11,margin:0}}>Margin (Kamai)</p>
-          <p style={{fontFamily:"monospace",fontSize:22,fontWeight:900,color:"#f59e0b",margin:0}}>Rs.{(totalIn-totalOut).toFixed(0)}</p>
+        <div style={{background:"#16181D",border:"1px solid #D4AF6A",borderRadius:12,padding:12,gridColumn:"1/-1"}}>
+          <p style={{color:"#85898F",fontSize:11,margin:0}}>Margin (Kamai)</p>
+          <p style={{fontFamily:"monospace",fontSize:22,fontWeight:900,color:"#D4AF6A",margin:0}}>Rs.{(totalIn-totalOut).toFixed(0)}</p>
         </div>
       </div>
-      <h3 style={{color:"#fafafa",margin:"0 0 8px",fontWeight:700}}>Pending ({pending.length})</h3>
-      {pending.length===0&&<p style={{color:"#525252",fontSize:13}}>Koi pending request nahi</p>}
+      <h3 style={{color:"#EDEDEF",margin:"0 0 8px",fontWeight:700}}>Pending ({pending.length})</h3>
+      {pending.length===0&&<p style={{color:"#85898F",fontSize:13}}>Koi pending request nahi</p>}
       {pending.map(t=>(
-        <div key={t.id} style={{background:"#171717",border:"1px solid #262626",borderRadius:12,padding:12,marginBottom:10}}>
+        <div key={t.id} style={{background:"#16181D",border:"1px solid #242830",borderRadius:12,padding:12,marginBottom:10}}>
           <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
-            <span style={{fontWeight:700,color:"#fafafa",fontSize:13}}>{t.username}</span>
-            <span style={{fontSize:11,fontWeight:700,padding:"2px 8px",borderRadius:999,background:t.type==="topup"?"rgba(5,150,105,.2)":"rgba(124,58,237,.2)",color:t.type==="topup"?"#34d399":"#a78bfa"}}>{t.type==="topup"?"Top-up":"Withdraw"}</span>
+            <span style={{fontWeight:700,color:"#EDEDEF",fontSize:13}}>{t.username}</span>
+            <span style={{fontSize:11,fontWeight:700,padding:"2px 8px",borderRadius:999,background:t.type==="topup"?"rgba(5,150,105,.2)":"rgba(124,58,237,.2)",color:t.type==="topup"?"#3ECF9A":"#a78bfa"}}>{t.type==="topup"?"Top-up":"Withdraw"}</span>
           </div>
-          <p style={{color:"#d4d4d4",fontSize:12,margin:"0 0 8px"}}>Rs.{t.amountPKR} • {t.coins} coins • {t.method}{t.reference?` • ${t.reference}`:""}</p>
+          <p style={{color:"#C7CBD1",fontSize:12,margin:"0 0 8px"}}>Rs.{t.amountPKR} • {t.coins} coins • {t.method}{t.reference?` • ${t.reference}`:""}</p>
           <div style={{display:"flex",gap:8}}>
             {t.type==="topup"?<>
-              <Btn onClick={()=>approveTopup(t)} style={{flex:1,padding:"7px",fontSize:12}}>✓ Approve</Btn>
-              <Btn onClick={()=>rejectTopup(t)} ghost style={{flex:1,padding:"7px",fontSize:12}}>✕ Reject</Btn>
+              <Btn onClick={()=>approveTopup(t)} style={{flex:1,padding:"7px",fontSize:12}}>Approve</Btn>
+              <Btn onClick={()=>rejectTopup(t)} ghost style={{flex:1,padding:"7px",fontSize:12}}>Reject</Btn>
             </>:<>
-              <Btn onClick={()=>markWithdrawPaid(t)} style={{flex:1,padding:"7px",fontSize:12}}>💵 Paid</Btn>
-              <Btn onClick={()=>rejectWithdraw(t)} ghost style={{flex:1,padding:"7px",fontSize:12}}>✕ Reject</Btn>
+              <Btn onClick={()=>markWithdrawPaid(t)} style={{flex:1,padding:"7px",fontSize:12,display:"flex",alignItems:"center",justifyContent:"center",gap:5}}><Icon name="cash" size={13}/> Paid</Btn>
+              <Btn onClick={()=>rejectWithdraw(t)} ghost style={{flex:1,padding:"7px",fontSize:12}}>Reject</Btn>
             </>}
           </div>
         </div>
@@ -1395,11 +1446,11 @@ const fireBurst=useCallback((b)=>{ setBurst({...b,key:Date.now()}); setTimeout((
   }
 
   if(session===undefined||(session&&!user)){
-    return <div style={{minHeight:"100vh",background:"#0a0a0a",display:"flex",alignItems:"center",justifyContent:"center",color:"#525252"}}>⟳ Load ho raha hai...</div>;
+    return <div style={{minHeight:"100vh",background:"#0C0D10",display:"flex",alignItems:"center",justifyContent:"center",color:"#85898F"}}>Load ho raha hai...</div>;
   }
   if(!user){
     return (
-      <div style={{minHeight:"100vh",background:"#0a0a0a"}}>
+      <div style={{minHeight:"100vh",background:"#0C0D10"}}>
         <AuthScreen notify={notify}/>
         <Toast text={toast}/>
         <style>{GLOBAL_CSS}</style>
@@ -1409,7 +1460,7 @@ const fireBurst=useCallback((b)=>{ setBurst({...b,key:Date.now()}); setTimeout((
 
   if(showAdmin && user.isAdmin){
     return (
-      <div style={{minHeight:"100vh",background:"#0a0a0a"}}>
+      <div style={{minHeight:"100vh",background:"#0C0D10"}}>
         <AdminPanel onExit={()=>setShowAdmin(false)} notify={notify}/>
         <Toast text={toast}/>
         <style>{GLOBAL_CSS}</style>
@@ -1419,7 +1470,7 @@ const fireBurst=useCallback((b)=>{ setBurst({...b,key:Date.now()}); setTimeout((
 
   if(activeLive){
     return (
-      <div style={{minHeight:"100vh",background:"#0a0a0a"}}>
+      <div style={{minHeight:"100vh",background:"#0C0D10"}}>
         <LiveDetailView post={activeLive} posts={posts} user={user} onBack={()=>setActiveLive(null)} fireBurst={fireBurst} notify={notify} onCloseLive={closeLive} refreshFeed={refreshFeed} onJoinCohost={openLive}/>
         <GiftBurst burst={burst}/>
         <Toast text={toast}/>
@@ -1430,7 +1481,7 @@ const fireBurst=useCallback((b)=>{ setBurst({...b,key:Date.now()}); setTimeout((
 
   if(chatPartner){
     return (
-      <div style={{minHeight:"100vh",background:"#0a0a0a"}}>
+      <div style={{minHeight:"100vh",background:"#0C0D10"}}>
         <ChatView user={user} partner={chatPartner} onBack={()=>setChatPartner(null)}/>
         <Toast text={toast}/>
         <style>{GLOBAL_CSS}</style>
@@ -1439,30 +1490,38 @@ const fireBurst=useCallback((b)=>{ setBurst({...b,key:Date.now()}); setTimeout((
   }
 
   const TABS=[
-    ["home","🏠"],["live","📡"],["reels","🎬"],["search","🔍"],["inbox","💬"],["profile","👤"],
+    ["home","home"],["live","live"],["reels","reel"],["search","search"],["inbox","chat"],["profile","user"],
   ];
 
   return (
-    <div style={{minHeight:"100vh",background:"#0a0a0a",display:"flex",flexDirection:"column"}}>
-      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"12px 16px",borderBottom:"1px solid #171717",position:"sticky",top:0,background:"#0a0a0a",zIndex:30}}>
-        <span style={{fontWeight:900,fontSize:20,color:"#fafafa"}}>🌊 {APP_NAME}</span>
+    <div style={{minHeight:"100vh",background:"#0C0D10",display:"flex",flexDirection:"column"}}>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"12px 16px",borderBottom:"1px solid #16181D",position:"sticky",top:0,background:"#0C0D10",zIndex:30}}>
+        <span style={{fontWeight:700,fontSize:20,color:"#EDEDEF",fontFamily:"'Sora',sans-serif",display:"flex",alignItems:"center",gap:8}}>
+          <span style={{width:30,height:30,borderRadius:9,background:"linear-gradient(155deg,#1B3A2E,#0F1F19)",border:"1px solid rgba(47,191,135,0.3)",display:"flex",alignItems:"center",justifyContent:"center",gap:1.5}}>
+            <span style={{width:2,height:6,background:"#2FBF87",borderRadius:2,display:"inline-block"}}/>
+            <span style={{width:2,height:11,background:"#2FBF87",borderRadius:2,display:"inline-block"}}/>
+            <span style={{width:2,height:15,background:"#2FBF87",borderRadius:2,display:"inline-block"}}/>
+            <span style={{width:2,height:8,background:"#2FBF87",borderRadius:2,display:"inline-block"}}/>
+          </span>
+          {APP_NAME}
+        </span>
         <div style={{display:"flex",alignItems:"center",gap:10}}>
           <CoinPill value={user.coinBalance} onClick={()=>setTab("wallet")}/>
-          <button onClick={toggleNotifs} style={{position:"relative",background:"none",border:"none",cursor:"pointer",fontSize:18}}>
-            🔔
-            {unreadCount>0&&<span style={{position:"absolute",top:-4,right:-4,background:"#e11d48",color:"#fff",fontSize:9,fontWeight:700,borderRadius:999,padding:"1px 5px"}}>{unreadCount}</span>}
+          <button onClick={toggleNotifs} style={{position:"relative",background:"none",border:"none",cursor:"pointer",display:"flex",padding:6,color:"#EDEDEF"}}>
+            <Icon name="bell" size={19}/>
+            {unreadCount>0&&<span style={{position:"absolute",top:-2,right:-2,background:"#E5594A",color:"#fff",fontSize:9,fontWeight:700,borderRadius:999,padding:"1px 5px"}}>{unreadCount}</span>}
           </button>
-          {user.isAdmin&&<button onClick={()=>setShowAdmin(true)} style={{background:"none",border:"none",cursor:"pointer",fontSize:16}}>🛡️</button>}
+          {user.isAdmin&&<button onClick={()=>setShowAdmin(true)} style={{background:"none",border:"none",cursor:"pointer",display:"flex",padding:6,color:"#D4AF6A"}}><Icon name="shield" size={17}/></button>}
         </div>
       </div>
 
       {notifOpen&&(
-        <div style={{position:"fixed",top:56,right:14,zIndex:40,background:"#171717",border:"1px solid #262626",borderRadius:14,width:260,maxHeight:320,overflowY:"auto",boxShadow:"0 8px 30px rgba(0,0,0,.5)"}}>
-          {notifications.length===0&&<p style={{color:"#525252",fontSize:12,padding:14,margin:0}}>Koi notification nahi</p>}
+        <div style={{position:"fixed",top:56,right:14,zIndex:40,background:"#16181D",border:"1px solid #242830",borderRadius:14,width:260,maxHeight:320,overflowY:"auto",boxShadow:"0 8px 30px rgba(0,0,0,.5)"}}>
+          {notifications.length===0&&<p style={{color:"#85898F",fontSize:12,padding:14,margin:0}}>Koi notification nahi</p>}
           {notifications.map(n=>(
-            <div key={n.id} style={{padding:"10px 14px",borderBottom:"1px solid #262626",fontSize:12,color:n.read?"#737373":"#e5e5e5"}}>
+            <div key={n.id} style={{padding:"10px 14px",borderBottom:"1px solid #242830",fontSize:12,color:n.read?"#9AA0A6":"#EDEDEF"}}>
               {n.body}
-              <div style={{fontSize:10,color:"#525252",marginTop:2}}>{timeAgo(n.ts)} pehle</div>
+              <div style={{fontSize:10,color:"#85898F",marginTop:2}}>{timeAgo(n.ts)} pehle</div>
             </div>
           ))}
         </div>
@@ -1480,13 +1539,13 @@ const fireBurst=useCallback((b)=>{ setBurst({...b,key:Date.now()}); setTimeout((
         {tab==="create"&&<CreateView user={user} notify={notify} onDone={()=>{ refreshFeed(); setTab("home"); notify("Post ho gaya!"); }}/>}
       </div>
 
-      <div style={{position:"fixed",bottom:0,left:0,right:0,background:"#0a0a0a",borderTop:"1px solid #171717",display:"flex",alignItems:"center",justifyContent:"space-around",padding:"8px 4px calc(8px + env(safe-area-inset-bottom))",zIndex:30}}>
+      <div style={{position:"fixed",bottom:0,left:0,right:0,background:"#0C0D10",borderTop:"1px solid #16181D",display:"flex",alignItems:"center",justifyContent:"space-around",padding:"8px 4px calc(8px + env(safe-area-inset-bottom))",zIndex:30}}>
         {TABS.slice(0,3).map(([id,icon])=>(
-          <button key={id} onClick={()=>setTab(id)} style={{background:"none",border:"none",cursor:"pointer",fontSize:20,opacity:tab===id?1:0.4,padding:6}}>{icon}</button>
+          <button key={id} onClick={()=>setTab(id)} style={{background:"none",border:"none",cursor:"pointer",display:"flex",opacity:tab===id?1:0.5,padding:6,color:tab===id?"#2FBF87":"#85898F"}}><Icon name={icon} size={20}/></button>
         ))}
-        <button onClick={()=>setTab("create")} style={{background:"linear-gradient(135deg,#f59e0b,#e11d48)",border:"none",borderRadius:14,width:42,height:42,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",fontSize:18,color:"#0a0a0a",marginTop:-14,boxShadow:"0 4px 14px rgba(245,158,11,.4)"}}>➕</button>
+        <button onClick={()=>setTab("create")} style={{background:"linear-gradient(135deg,#2FBF87,#22996B)",border:"none",borderRadius:14,width:42,height:42,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",color:"#0C0D10",marginTop:-14,boxShadow:"0 10px 24px rgba(47,191,135,.35)"}}><Icon name="plus" size={20} color="#0C0D10" strokeWidth={2.4}/></button>
         {TABS.slice(3).map(([id,icon])=>(
-          <button key={id} onClick={()=>setTab(id)} style={{background:"none",border:"none",cursor:"pointer",fontSize:20,opacity:tab===id?1:0.4,padding:6}}>{icon}</button>
+          <button key={id} onClick={()=>setTab(id)} style={{background:"none",border:"none",cursor:"pointer",display:"flex",opacity:tab===id?1:0.5,padding:6,color:tab===id?"#2FBF87":"#85898F"}}><Icon name={icon} size={20}/></button>
         ))}
       </div>
 
@@ -1498,8 +1557,10 @@ const fireBurst=useCallback((b)=>{ setBurst({...b,key:Date.now()}); setTimeout((
 }
 
 const GLOBAL_CSS = `
+  @import url('https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap');
   * { box-sizing: border-box; }
-  body { margin:0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+  body { margin:0; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background:#0C0D10; }
+  h1,h2,h3 { font-family: 'Sora', sans-serif; }
   @keyframes giftPop { 0%{transform:scale(.4);opacity:0;} 15%{transform:scale(1.15);opacity:1;} 80%{transform:scale(1);opacity:1;} 100%{transform:scale(.9);opacity:0;} }
   ::-webkit-scrollbar { width:0; height:0; }
 `;
