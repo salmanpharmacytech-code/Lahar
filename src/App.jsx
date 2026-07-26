@@ -195,7 +195,7 @@ function GiftBurst({burst}){
       ):(
         <div style={{fontSize:64,animation:"giftPop 2.1s ease-out forwards"}}>{burst.emoji}</div>
       )}
-      {needsTap&&<div onClick={unmute} style={{marginTop:8,background:"rgba(0,0,0,.5)",color:"#fff",padding:"4px 12px",borderRadius:999,fontSize:12,pointerEvents:"auto",cursor:"pointer",display:"flex",alignItems:"center",gap:6}}><Icon name="mute" size={14}/> Awaaz ke liye tap karein</div>}
+      {needsTap&&<div onClick={unmute} style={{marginTop:8,background:"rgba(0,0,0,.5)",color:"#fff",padding:"4px 12px",borderRadius:999,fontSize:12,pointerEvents:"auto",cursor:"pointer",display:"flex",alignItems:"center",gap:6}}><Icon name="mute" size={14}/> Tap to unmute</div>}
       <div style={{fontWeight:800,fontSize:18,marginTop:8,background:"linear-gradient(90deg,#FFD166,#FF8FA3)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>{burst.from} ne {burst.name} bheja!</div>
     </div>
   );
@@ -347,25 +347,25 @@ function GiftSheet({balance,onClose,onSend}){
 }
 
 // ── Post Card ─────────────────────────────────────────────────────────────────
-function PostCard({post,user,onLike,onOpenComments,onOpenGift,onOpenLive,onOpenMedia,onDelete}){
+function PostCard({post,user,onLike,onOpenComments,onOpenGift,onOpenLive,onOpenMedia,onDelete,onOpenProfile}){
   const liked=post.likes?.includes(user.userId);
   const author=post.author;
   const canDelete=post.userId===user.userId||user.isAdmin;
   const [menuOpen,setMenuOpen]=useState(false);
   return (
     <div style={{background:"#1C1233",border:"1px solid #2E1F4D",borderRadius:18,overflow:"hidden",marginBottom:14}}>
-      <div style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px"}}>
+      <div style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",cursor:"pointer"}} onClick={()=>onOpenProfile?.(post.userId)}>
         <Avatar name={post.username} live={post.isLive} pic={author?.profilePic} verified={author?.verified}/>
         <div style={{flex:1}}>
           <div style={{display:"flex",alignItems:"center",gap:4}}>
             <span style={{fontWeight:700,color:"#F4EEFF",fontSize:13}}>{post.username}</span>
             {author?.verified&&<Icon name="verified" size={13} color="#A855F7" fill="#A855F7" strokeWidth={0}/>}
           </div>
-          <span style={{color:"#9B8FC0",fontSize:11}}>{timeAgo(post.createdAt)} pehle</span>
+          <span style={{color:"#9B8FC0",fontSize:11}}>{timeAgo(post.createdAt)} ago</span>
         </div>
-        {post.isLive&&<button onClick={()=>onOpenLive(post)} style={{background:"#E11D48",color:"#fff",border:"none",borderRadius:999,padding:"6px 12px",fontSize:11,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",gap:5}}><Icon name="live" size={13}/> Join Live</button>}
+        {post.isLive&&<button onClick={(e)=>{e.stopPropagation();onOpenLive(post);}} style={{background:"#E11D48",color:"#fff",border:"none",borderRadius:999,padding:"6px 12px",fontSize:11,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",gap:5}}><Icon name="live" size={13}/> Join Live</button>}
         {canDelete&&(
-          <div style={{position:"relative"}}>
+          <div style={{position:"relative"}} onClick={e=>e.stopPropagation()}>
             <button onClick={()=>setMenuOpen(v=>!v)} style={{background:"none",border:"none",color:"#9B8FC0",fontSize:16,cursor:"pointer",padding:4}}>⋮</button>
             {menuOpen&&(
               <div style={{position:"absolute",right:0,top:24,background:"#120A22",border:"1px solid #2E1F4D",borderRadius:10,overflow:"hidden",zIndex:10,minWidth:120}}>
@@ -412,7 +412,7 @@ function MediaViewerModal({post,onClose}){
   );
 }
 // ── Feed View ─────────────────────────────────────────────────────────────────
-function FeedView({posts,user,refreshFeed,notify,fireBurst,onOpenLive}){
+function FeedView({posts,user,refreshFeed,notify,fireBurst,onOpenLive,onOpenProfile}){
   const [commentPost,setCommentPost]=useState(null);
   const [giftPost,setGiftPost]=useState(null);
   const [mediaPost,setMediaPost]=useState(null);
@@ -451,7 +451,7 @@ function FeedView({posts,user,refreshFeed,notify,fireBurst,onOpenLive}){
   return (
     <div style={{padding:"10px 12px"}}>
       {visible.length===0&&<div style={{textAlign:"center",padding:"60px 0",color:"#9B8FC0"}}><div style={{marginBottom:8,display:"flex",justifyContent:"center",color:"#3A2A5C"}}><Icon name="image" size={36}/></div><p>No posts yet — tap + to post!</p></div>}
-      {visible.map(post=><PostCard key={post.postId} post={post} user={user} onLike={handleLike} onOpenComments={setCommentPost} onOpenGift={setGiftPost} onOpenLive={onOpenLive} onOpenMedia={setMediaPost} onDelete={setConfirmDelete}/>)}
+      {visible.map(post=><PostCard key={post.postId} post={post} user={user} onLike={handleLike} onOpenComments={setCommentPost} onOpenGift={setGiftPost} onOpenLive={onOpenLive} onOpenMedia={setMediaPost} onDelete={setConfirmDelete} onOpenProfile={onOpenProfile}/>)}
       {commentPost&&<CommentSheet post={posts.find(p=>p.postId===commentPost.postId)||commentPost} user={user} onClose={()=>setCommentPost(null)} onAddComment={handleAddComment} onReact={handleReact} onDeleteComment={handleDeleteComment}/>}
       {giftPost&&<GiftSheet balance={user.coinBalance} onClose={()=>setGiftPost(null)} onSend={handleSendGift}/>}
       {mediaPost&&<MediaViewerModal post={mediaPost} onClose={()=>setMediaPost(null)}/>}
@@ -463,7 +463,7 @@ function FeedView({posts,user,refreshFeed,notify,fireBurst,onOpenLive}){
 // ── shared file validation ───────────────────────────────────────────────────
 function validateMediaFile(file,{video=true,image=true,maxMB=50}={}){
   if(video&&file.type.startsWith("video")){
-    if(file.size>maxMB*1024*1024) return `Video ${maxMB}MB se choti honi chahiye`;
+    if(file.size>maxMB*1024*1024) return `Video must be smaller than ${maxMB}MB`;
     return null;
   }
   if(image&&file.type.startsWith("image")){
@@ -502,7 +502,7 @@ function ReelUploadModal({user,onDone,onClose,notify}){
     <div style={{position:"fixed",inset:0,zIndex:130,background:"rgba(0,0,0,.8)",display:"flex",flexDirection:"column",justifyContent:"flex-end"}}>
       <div style={{background:"#120A22",borderTop:"1px solid #2E1F4D",borderRadius:"20px 20px 0 0",padding:20}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
-          <span style={{fontWeight:700,color:"#F4EEFF",fontSize:17,display:"flex",alignItems:"center",gap:8}}><Icon name="reel" size={18}/> Reel Upload Karein</span>
+          <span style={{fontWeight:700,color:"#F4EEFF",fontSize:17,display:"flex",alignItems:"center",gap:8}}><Icon name="reel" size={18}/> Upload Reel</span>
           <button onClick={onClose} style={{background:"none",border:"none",color:"#9B8FC0",cursor:"pointer",display:"flex"}}><Icon name="close" size={20}/></button>
         </div>
         <input ref={fileRef} type="file" accept="video/*" style={{display:"none"}} onChange={onFileChange}/>
@@ -718,7 +718,7 @@ function GoLiveView({user,onDone,notify}){
         {!previewStream&&<div style={{position:"absolute",inset:0,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",color:"#9B8FC0",fontSize:13,gap:8}}><Icon name="camera" size={26} color="#3A2A5C"/>Loading camera...</div>}
       </div>
       <input value={title} onChange={e=>setTitle(e.target.value)} placeholder="Live title (optional)" style={{...inp,marginBottom:12}}/>
-      <Btn onClick={startLive} disabled={busy||!previewStream} style={{width:"100%",background:"linear-gradient(135deg,#E11D48,#FF4D6D)",color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}><Icon name="live" size={16} color="#fff"/> Live Shuru Karein</Btn>
+      <Btn onClick={startLive} disabled={busy||!previewStream} style={{width:"100%",background:"linear-gradient(135deg,#E11D48,#FF4D6D)",color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}><Icon name="live" size={16} color="#fff"/> Start Live</Btn>
     </div>
   );
 }
@@ -950,7 +950,7 @@ function LiveFeedView({posts,user,onOpenLive,onStartLive}){
       <div style={{borderRadius:20,padding:"26px 20px",textAlign:"center",background:"linear-gradient(160deg,rgba(168,85,247,0.14),rgba(16,34,50,0.6))",border:"1px solid rgba(168,85,247,0.25)"}}>
         <div style={{display:"flex",justifyContent:"center",marginBottom:12}}><WaveLogo size={40}/></div>
         <button onClick={onStartLive} style={{display:"inline-flex",alignItems:"center",gap:8,background:"linear-gradient(135deg,#E11D48,#FF4D6D)",color:"#fff",border:"none",borderRadius:999,padding:"13px 28px",fontWeight:700,fontSize:14.5,cursor:"pointer",boxShadow:"0 10px 24px rgba(197,57,44,.3)"}}>
-          <Icon name="live" size={16} color="#fff"/> Abhi Live Jayen
+          <Icon name="live" size={16} color="#fff"/> Go Live Now
         </button>
         <p style={{color:"#9B8FC0",fontSize:12.5,marginTop:12}}>Start your live stream and receive gifts</p>
       </div>
@@ -985,7 +985,7 @@ function LiveFeedView({posts,user,onOpenLive,onStartLive}){
   );
 }
 // ── Search View ───────────────────────────────────────────────────────────────
-function SearchView({user,notify,onOpenChat}){
+function SearchView({user,notify,onOpenChat,onOpenProfile}){
   const [query,setQuery]=useState("");
   const [results,setResults]=useState([]);
   const [suggested,setSuggested]=useState([]);
@@ -1001,7 +1001,7 @@ function SearchView({user,notify,onOpenChat}){
     try{
       const r=await db.sendFriendRequest(user.userId,target.userId);
       setSentIds(prev=>({...prev,[target.userId]:true}));
-      notify(r.already?"Request already sent":`${target.username} ko request bhej di`);
+      notify(r.already?"Request already sent":`Request sent to ${target.username}`);
     }catch(e){ notify("Could not send request"); }
   }
   const show=results.length>0?results:suggested;
@@ -1014,14 +1014,14 @@ function SearchView({user,notify,onOpenChat}){
       </div>
       <div style={{display:"flex",flexDirection:"column",gap:8}}>
         {show.map(u=>(
-          <div key={u.userId} style={{display:"flex",alignItems:"center",gap:10,padding:10,background:"#1C1233",borderRadius:14}}>
+          <div key={u.userId} style={{display:"flex",alignItems:"center",gap:10,padding:10,background:"#1C1233",borderRadius:14,cursor:"pointer"}} onClick={()=>onOpenProfile(u.userId)}>
             <Avatar name={u.username} size={38} pic={u.profilePic} verified={u.verified}/>
             <div style={{flex:1}}>
               <p style={{fontWeight:700,color:"#F4EEFF",fontSize:13,margin:0}}>{u.username}{u.verified&&<Icon name="verified" size={12} color="#A855F7" fill="#A855F7" strokeWidth={0}/>}</p>
               {u.bio&&<p style={{color:"#9B8FC0",fontSize:11,margin:0,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",maxWidth:150}}>{u.bio}</p>}
             </div>
-            <button onClick={()=>onOpenChat({partnerId:u.userId,partnerUsername:u.username})} style={{background:"#2E1F4D",border:"none",borderRadius:"50%",width:32,height:32,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}><Icon name="send" size={14}/></button>
-            <button onClick={()=>sendFriendReq(u)} disabled={sentIds[u.userId]} style={{background:"rgba(168,85,247,.2)",border:"none",borderRadius:"50%",width:32,height:32,cursor:sentIds[u.userId]?"default":"pointer",fontSize:14,opacity:sentIds[u.userId]?0.4:1}}>{sentIds[u.userId]?<Icon name="check" size={13}/>:<Icon name="plus" size={13}/>}</button>
+            <button onClick={(e)=>{e.stopPropagation();onOpenChat({partnerId:u.userId,partnerUsername:u.username});}} style={{background:"#2E1F4D",border:"none",borderRadius:"50%",width:32,height:32,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}><Icon name="send" size={14}/></button>
+            <button onClick={(e)=>{e.stopPropagation();sendFriendReq(u);}} disabled={sentIds[u.userId]} style={{background:"rgba(168,85,247,.2)",border:"none",borderRadius:"50%",width:32,height:32,cursor:sentIds[u.userId]?"default":"pointer",fontSize:14,opacity:sentIds[u.userId]?0.4:1}}>{sentIds[u.userId]?<Icon name="check" size={13}/>:<Icon name="plus" size={13}/>}</button>
           </div>
         ))}
         {show.length===0&&<p style={{color:"#9B8FC0",fontSize:13,textAlign:"center",padding:"24px 0"}}>No users found</p>}
@@ -1031,7 +1031,7 @@ function SearchView({user,notify,onOpenChat}){
 }
 
 // ── Inbox View ────────────────────────────────────────────────────────────────
-function InboxView({user,onOpenChat,notify,notifications}){
+function InboxView({user,onOpenChat,notify,notifications,onOpenProfile}){
   const [convs,setConvs]=useState([]);
   const [tab,setTab]=useState("msgs");
   const [requests,setRequests]=useState([]);
@@ -1047,7 +1047,7 @@ function InboxView({user,onOpenChat,notify,notifications}){
   async function respond(req,accept){
     try{
       await db.respondFriendRequest(req.id,req.fromId,user.userId,accept);
-      notify(accept?`${req.fromUsername} ko friend add kar liya`:"Request rejected");
+      notify(accept?`Added ${req.fromUsername} as friend`:"Request rejected");
       load();
     }catch(e){ notify("Something went wrong"); }
   }
@@ -1064,7 +1064,7 @@ function InboxView({user,onOpenChat,notify,notifications}){
           convs.length===0?<p style={{color:"#9B8FC0",fontSize:13,textAlign:"center",padding:"40px 0"}}>No messages</p>:
           convs.map(c=>(
             <button key={c.partnerId} onClick={()=>onOpenChat({partnerId:c.partnerId,partnerUsername:c.partnerUsername})} style={{display:"flex",alignItems:"center",gap:10,width:"100%",padding:10,background:"#1C1233",borderRadius:14,marginBottom:8,border:"none",cursor:"pointer",textAlign:"left"}}>
-              <Avatar name={c.partnerUsername} size={40} pic={c.partnerProfilePic}/>
+              <span onClick={(e)=>{e.stopPropagation();onOpenProfile(c.partnerId);}}><Avatar name={c.partnerUsername} size={40} pic={c.partnerProfilePic}/></span>
               <div style={{flex:1,overflow:"hidden"}}>
                 <p style={{fontWeight:700,color:"#F4EEFF",fontSize:13,margin:0}}>{c.partnerUsername}</p>
                 <p style={{color:"#9B8FC0",fontSize:12,margin:0,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{c.lastText}</p>
@@ -1077,8 +1077,8 @@ function InboxView({user,onOpenChat,notify,notifications}){
           requests.length===0?<p style={{color:"#9B8FC0",fontSize:13,textAlign:"center",padding:"40px 0"}}>No requests</p>:
           requests.map(r=>(
             <div key={r.id} style={{display:"flex",alignItems:"center",gap:10,padding:10,background:"#1C1233",borderRadius:14,marginBottom:8}}>
-              <Avatar name={r.fromUsername} size={38} pic={r.profilePic} verified={r.verified}/>
-              <p style={{flex:1,fontWeight:700,color:"#F4EEFF",fontSize:13,margin:0}}>{r.fromUsername}</p>
+              <span onClick={()=>onOpenProfile(r.fromId)} style={{cursor:"pointer",display:"flex"}}><Avatar name={r.fromUsername} size={38} pic={r.profilePic} verified={r.verified}/></span>
+              <p onClick={()=>onOpenProfile(r.fromId)} style={{flex:1,fontWeight:700,color:"#F4EEFF",fontSize:13,margin:0,cursor:"pointer"}}>{r.fromUsername}</p>
               <button onClick={()=>respond(r,true)} style={{background:"#A855F7",border:"none",borderRadius:8,padding:"6px 10px",color:"#fff",fontSize:11,fontWeight:700,cursor:"pointer",display:"flex"}}><Icon name="check" size={13}/></button>
               <button onClick={()=>respond(r,false)} style={{background:"#3A2A5C",border:"none",borderRadius:8,padding:"6px 10px",color:"#fff",fontSize:11,fontWeight:700,cursor:"pointer",display:"flex"}}><Icon name="close" size={13}/></button>
             </div>
@@ -1087,10 +1087,10 @@ function InboxView({user,onOpenChat,notify,notifications}){
         {tab==="friends"&&(
           friends.length===0?<p style={{color:"#9B8FC0",fontSize:13,textAlign:"center",padding:"40px 0"}}>No friends yet</p>:
           friends.map(f=>(
-            <button key={f.userId} onClick={()=>onOpenChat({partnerId:f.userId,partnerUsername:f.username})} style={{display:"flex",alignItems:"center",gap:10,width:"100%",padding:10,background:"#1C1233",borderRadius:14,marginBottom:8,border:"none",cursor:"pointer",textAlign:"left"}}>
+            <button key={f.userId} onClick={()=>onOpenProfile(f.userId)} style={{display:"flex",alignItems:"center",gap:10,width:"100%",padding:10,background:"#1C1233",borderRadius:14,marginBottom:8,border:"none",cursor:"pointer",textAlign:"left"}}>
               <Avatar name={f.username} size={38} pic={f.profilePic} verified={f.verified}/>
               <p style={{flex:1,fontWeight:700,color:"#F4EEFF",fontSize:13,margin:0}}>{f.username}</p>
-              <Icon name="send" size={15}/>
+              <span onClick={(e)=>{e.stopPropagation();onOpenChat({partnerId:f.userId,partnerUsername:f.username});}} style={{display:"flex",padding:4}}><Icon name="send" size={15}/></span>
             </button>
           ))
         )}
@@ -1153,7 +1153,7 @@ function WalletView({user,notify,onRefreshUser}){
 
   async function submitTopup(){
     const pkr=parseFloat(amount);
-    if(!pkr||pkr<MIN_TOPUP_PKR){notify(`Minimum Rs.${MIN_TOPUP_PKR.toLocaleString()} ka top-up hoga`);return;}
+    if(!pkr||pkr<MIN_TOPUP_PKR){notify(`Minimum top-up is Rs.${MIN_TOPUP_PKR.toLocaleString()}`);return;}
     setBusy(true);
     try{
       await db.createTransaction({userId:user.userId,type:"topup",amountPKR:pkr,coins:Math.floor(pkr*TOPUP_COINS_PER_PKR),method,reference:reference.trim()});
@@ -1220,7 +1220,7 @@ function WalletView({user,notify,onRefreshUser}){
             <div key={t.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:"1px solid #2E1F4D"}}>
               <div>
                 <p style={{margin:0,color:"#D9CCF0",fontSize:12,fontWeight:600}}>{t.type==="topup"?"Top-up":"Withdraw"} • Rs.{t.amountPKR}</p>
-                <p style={{margin:0,color:"#9B8FC0",fontSize:10}}>{timeAgo(t.createdAt)} pehle</p>
+                <p style={{margin:0,color:"#9B8FC0",fontSize:10}}>{timeAgo(t.createdAt)} ago</p>
               </div>
               <span style={{fontSize:10,fontWeight:700,padding:"2px 8px",borderRadius:999,background:t.status==="approved"?"rgba(34,197,94,.15)":t.status==="rejected"?"rgba(239,68,68,.15)":"rgba(212,175,106,.15)",color:t.status==="approved"?"#4ade80":t.status==="rejected"?"#f87171":"#fbbf24"}}>{t.status}</span>
             </div>
@@ -1232,7 +1232,112 @@ function WalletView({user,notify,onRefreshUser}){
 }
 
 // ── Profile View ──────────────────────────────────────────────────────────────
-function ProfileView({user,onLogout,onGoWallet,notify,onUserUpdate}){
+// ── Follow list (followers / following) ────────────────────────────────────
+function FollowListModal({title,users,onClose,onOpenProfile}){
+  return (
+    <div style={{position:"fixed",inset:0,zIndex:150,background:"rgba(0,0,0,.6)",display:"flex",alignItems:"flex-end"}} onClick={onClose}>
+      <div style={{background:"#1C1233",borderRadius:"20px 20px 0 0",width:"100%",maxHeight:"70vh",display:"flex",flexDirection:"column"}} onClick={e=>e.stopPropagation()}>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"14px 16px",borderBottom:"1px solid #2E1F4D"}}>
+          <span style={{fontWeight:700,color:"#F4EEFF",fontFamily:"'Sora',sans-serif"}}>{title}</span>
+          <button onClick={onClose} style={{background:"none",border:"none",color:"#9B8FC0",cursor:"pointer",display:"flex"}}><Icon name="close" size={18}/></button>
+        </div>
+        <div style={{overflowY:"auto",padding:"6px 16px 20px"}}>
+          {users.length===0&&<p style={{textAlign:"center",color:"#9B8FC0",fontSize:13,padding:"24px 0"}}>Nobody here yet</p>}
+          {users.map(u=>(
+            <button key={u.userId} onClick={()=>{onClose();onOpenProfile(u.userId);}} style={{display:"flex",alignItems:"center",gap:10,width:"100%",padding:"10px 4px",background:"none",border:"none",borderBottom:"1px solid #2E1F4D",cursor:"pointer"}}>
+              <Avatar name={u.username} size={40} pic={u.profilePic} verified={u.verified}/>
+              <span style={{color:"#F4EEFF",fontSize:13.5,fontWeight:600}}>{u.username}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── View someone else's profile ─────────────────────────────────────────────
+function UserProfileView({userId,currentUser,onBack,notify,onOpenChat,onOpenProfile}){
+  const [profile,setProfile]=useState(null);
+  const [posts,setPosts]=useState([]);
+  const [counts,setCounts]=useState({followers:0,following:0});
+  const [following,setFollowing]=useState(false);
+  const [busy,setBusy]=useState(false);
+  const [mediaPost,setMediaPost]=useState(null);
+  const [listModal,setListModal]=useState(null); // "followers" | "following" | null
+  const [listUsers,setListUsers]=useState([]);
+
+  const load=useCallback(async()=>{
+    const [p,pl,c,f]=await Promise.all([
+      db.getUserById(userId),
+      db.fetchUserPosts(userId),
+      db.getFollowCounts(userId),
+      db.isFollowing(currentUser.userId,userId),
+    ]);
+    setProfile(p); setPosts(pl); setCounts(c); setFollowing(f);
+  },[userId,currentUser.userId]);
+  useEffect(()=>{ load(); },[load]);
+
+  async function toggleFollow(){
+    setBusy(true);
+    try{
+      if(following){ await db.unfollowUser(currentUser.userId,userId); setFollowing(false); setCounts(c=>({...c,followers:Math.max(0,c.followers-1)})); }
+      else{ await db.followUser(currentUser.userId,userId); setFollowing(true); setCounts(c=>({...c,followers:c.followers+1})); }
+    }catch(e){ notify("Could not update follow status"); }
+    finally{ setBusy(false); }
+  }
+  async function openList(kind){
+    const list = kind==="followers" ? await db.getFollowers(userId) : await db.getFollowing(userId);
+    setListUsers(list); setListModal(kind);
+  }
+
+  if(!profile) return <div style={{padding:40,textAlign:"center",color:"#9B8FC0"}}>Loading...</div>;
+  const mediaPosts=posts.filter(p=>!p.isReel);
+
+  return (
+    <div style={{padding:16}}>
+      <button onClick={onBack} style={{background:"none",border:"none",color:"#9B8FC0",cursor:"pointer",display:"flex",alignItems:"center",gap:6,marginBottom:14,fontSize:13}}><Icon name="back" size={16}/> Back</button>
+      <div style={{display:"flex",alignItems:"center",gap:14,marginBottom:14}}>
+        <Avatar name={profile.username} size={64} pic={profile.profilePic} verified={profile.verified}/>
+        <div style={{flex:1}}>
+          <p style={{fontWeight:800,color:"#F4EEFF",fontSize:17,margin:0,display:"flex",alignItems:"center",gap:5}}>{profile.username}{profile.verified&&<Icon name="verified" size={15} color="#A855F7" fill="#A855F7" strokeWidth={0}/>}</p>
+          <p style={{color:"#9B8FC0",fontSize:12,margin:"3px 0 0"}}>{profile.bio||"No bio yet"}</p>
+        </div>
+      </div>
+
+      <div style={{display:"flex",gap:8,marginBottom:16}}>
+        <Btn onClick={toggleFollow} disabled={busy} style={following?{flex:1,background:"transparent",border:"1px solid #3A2A5C",color:"#F4EEFF"}:{flex:1}}>{following?"Following":"Follow"}</Btn>
+        <Btn ghost onClick={()=>onOpenChat({partnerId:profile.userId,partnerUsername:profile.username})} style={{flex:1}}>Message</Btn>
+      </div>
+
+      <div style={{display:"flex",gap:18,marginBottom:14}}>
+        <span style={{color:"#9B8FC0",fontSize:13}}>Posts <span style={{color:"#FFD166",fontWeight:700}}>{mediaPosts.length}</span></span>
+        <button onClick={()=>openList("followers")} style={{background:"none",border:"none",cursor:"pointer",color:"#9B8FC0",fontSize:13,padding:0}}>Followers <span style={{color:"#FFD166",fontWeight:700}}>{counts.followers}</span></button>
+        <button onClick={()=>openList("following")} style={{background:"none",border:"none",cursor:"pointer",color:"#9B8FC0",fontSize:13,padding:0}}>Following <span style={{color:"#FFD166",fontWeight:700}}>{counts.following}</span></button>
+      </div>
+
+      <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:6}}>
+        {mediaPosts.map(p=>(
+          <button key={p.postId} onClick={()=>p.mediaData?setMediaPost(p):null} style={{position:"relative",aspectRatio:"1",background:"#1C1233",border:"1px solid #2E1F4D",borderRadius:10,overflow:"hidden",display:"flex",alignItems:"center",justifyContent:"center",cursor:p.mediaData?"pointer":"default",padding:0}}>
+            {p.mediaData&&p.mediaType==="image"?<img src={p.mediaData} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>
+            :p.mediaData&&p.mediaType==="video"?(
+              <>
+                <video src={p.mediaData} style={{width:"100%",height:"100%",objectFit:"cover"}} muted/>
+                <span style={{position:"absolute",top:4,right:4,background:"rgba(0,0,0,.55)",borderRadius:6,width:20,height:20,display:"flex",alignItems:"center",justifyContent:"center"}}><Icon name="play" size={9} color="#F4EEFF" fill="#F4EEFF"/></span>
+              </>
+            )
+            :<p style={{fontSize:10,color:"#9B8FC0",textAlign:"center",padding:6,margin:0}}>{p.caption?.slice(0,80)||"Post"}</p>}
+          </button>
+        ))}
+        {mediaPosts.length===0&&<p style={{gridColumn:"1/-1",textAlign:"center",color:"#9B8FC0",fontSize:12,padding:"20px 0"}}>No posts</p>}
+      </div>
+
+      {mediaPost&&<MediaViewerModal post={mediaPost} onClose={()=>setMediaPost(null)}/>}
+      {listModal&&<FollowListModal title={listModal==="followers"?"Followers":"Following"} users={listUsers} onClose={()=>setListModal(null)} onOpenProfile={onOpenProfile}/>}
+    </div>
+  );
+}
+
+function ProfileView({user,onLogout,onGoWallet,notify,onUserUpdate,onOpenProfile}){
   const [editing,setEditing]=useState(false);
   const [bio,setBio]=useState(user.bio||"");
   const [newPass,setNewPass]=useState("");
@@ -1240,12 +1345,21 @@ function ProfileView({user,onLogout,onGoWallet,notify,onUserUpdate}){
   const [confirmDelete,setConfirmDelete]=useState(null);
   const [mediaPost,setMediaPost]=useState(null);
   const [uploadingAvatar,setUploadingAvatar]=useState(false);
+  const [counts,setCounts]=useState({followers:0,following:0});
+  const [listModal,setListModal]=useState(null);
+  const [listUsers,setListUsers]=useState([]);
   const avatarRef=useRef(null);
 
   const loadPosts=useCallback(async()=>{
     try{ setMyPosts(await db.fetchUserPosts(user.userId)); }catch(e){}
   },[user.userId]);
   useEffect(()=>{ loadPosts(); },[loadPosts]);
+  useEffect(()=>{ db.getFollowCounts(user.userId).then(setCounts); },[user.userId]);
+
+  async function openList(kind){
+    const list = kind==="followers" ? await db.getFollowers(user.userId) : await db.getFollowing(user.userId);
+    setListUsers(list); setListModal(kind);
+  }
 
   async function saveBio(){
     try{ await db.updateProfile(user.userId,{bio}); onUserUpdate({...user,bio}); setEditing(false); notify("Profile updated"); }
@@ -1311,6 +1425,8 @@ function ProfileView({user,onLogout,onGoWallet,notify,onUserUpdate}){
       <div style={{display:"flex",gap:16,marginBottom:10}}>
         <span style={{color:"#9B8FC0",fontSize:13}}>Posts <span style={{color:"#FFD166",fontWeight:700}}>{myMediaPosts.length}</span></span>
         <span style={{color:"#9B8FC0",fontSize:13}}>Reels <span style={{color:"#FFD166",fontWeight:700}}>{myReels.length}</span></span>
+        <button onClick={()=>openList("followers")} style={{background:"none",border:"none",cursor:"pointer",color:"#9B8FC0",fontSize:13,padding:0}}>Followers <span style={{color:"#FFD166",fontWeight:700}}>{counts.followers}</span></button>
+        <button onClick={()=>openList("following")} style={{background:"none",border:"none",cursor:"pointer",color:"#9B8FC0",fontSize:13,padding:0}}>Following <span style={{color:"#FFD166",fontWeight:700}}>{counts.following}</span></button>
       </div>
       <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:6}}>
         {myPosts.map(p=>(
@@ -1333,6 +1449,7 @@ function ProfileView({user,onLogout,onGoWallet,notify,onUserUpdate}){
 
       {mediaPost&&<MediaViewerModal post={mediaPost} onClose={()=>setMediaPost(null)}/>}
       {confirmDelete&&<ConfirmDialog title="Delete this post?" message="This post will be permanently deleted." onConfirm={()=>handleDelete(confirmDelete)} onCancel={()=>setConfirmDelete(null)}/>}
+      {listModal&&<FollowListModal title={listModal==="followers"?"Followers":"Following"} users={listUsers} onClose={()=>setListModal(null)} onOpenProfile={onOpenProfile}/>}
     </div>
   );
 }
@@ -1405,9 +1522,14 @@ export default function App(){
   const [showAdmin,setShowAdmin]=useState(false);
   const [notifOpen,setNotifOpen]=useState(false);
   const [notifications,setNotifications]=useState([]);
+  const [viewUserId,setViewUserId]=useState(null);
 
   const notify=useCallback((text)=>{ setToast(text); setTimeout(()=>setToast(""),2200); },[]);
 const fireBurst=useCallback((b)=>{ setBurst({...b,key:Date.now()}); setTimeout(()=>setBurst(null), 15000); },[]);
+  const openUserProfile=useCallback((uid)=>{
+    if(user&&uid===user.userId){ setViewUserId(null); setTab("profile"); }
+    else { setViewUserId(uid); }
+  },[user]);
 
   // ── Bootstrapping: watch auth state ──────────────────────────────────────
   useEffect(()=>{
@@ -1433,7 +1555,7 @@ const fireBurst=useCallback((b)=>{ setBurst({...b,key:Date.now()}); setTimeout((
       const map=new Map();
       [...feed,...reels,...lives].forEach(p=>map.set(p.postId,p));
       setPosts(Array.from(map.values()).sort((a,b)=>b.createdAt-a.createdAt));
-    }catch(e){ /* network blip — sirf agli baar try hoga */ }
+    }catch(e){ /* network blip — will retry next time */ }
   },[]);
 
   useEffect(()=>{
@@ -1527,6 +1649,16 @@ const fireBurst=useCallback((b)=>{ setBurst({...b,key:Date.now()}); setTimeout((
     );
   }
 
+  if(viewUserId){
+    return (
+      <div style={{minHeight:"100vh",background:"#120A22"}}>
+        <UserProfileView userId={viewUserId} currentUser={user} onBack={()=>setViewUserId(null)} notify={notify} onOpenChat={setChatPartner} onOpenProfile={openUserProfile}/>
+        <Toast text={toast}/>
+        <style>{GLOBAL_CSS}</style>
+      </div>
+    );
+  }
+
   const TABS=[
     ["home","home"],["live","live"],["reels","reel"],["search","search"],["inbox","chat"],["profile","user"],
   ];
@@ -1554,20 +1686,20 @@ const fireBurst=useCallback((b)=>{ setBurst({...b,key:Date.now()}); setTimeout((
           {notifications.map(n=>(
             <div key={n.id} style={{padding:"10px 14px",borderBottom:"1px solid #2E1F4D",fontSize:12,color:n.read?"#9B8FC0":"#F4EEFF"}}>
               {n.body}
-              <div style={{fontSize:10,color:"#9B8FC0",marginTop:2}}>{timeAgo(n.ts)} pehle</div>
+              <div style={{fontSize:10,color:"#9B8FC0",marginTop:2}}>{timeAgo(n.ts)} ago</div>
             </div>
           ))}
         </div>
       )}
 
       <div style={{flex:1,overflowY:"auto",paddingBottom:70,display:"flex",flexDirection:tab==="reels"||tab==="live"&&activeLive?"column":undefined}}>
-        {tab==="home"&&<FeedView posts={posts} user={user} refreshFeed={refreshFeed} notify={notify} fireBurst={fireBurst} onOpenLive={openLive}/>}
+        {tab==="home"&&<FeedView posts={posts} user={user} refreshFeed={refreshFeed} notify={notify} fireBurst={fireBurst} onOpenLive={openLive} onOpenProfile={openUserProfile}/>}
         {tab==="live"&&<LiveFeedView posts={posts} user={user} onOpenLive={openLive} onStartLive={()=>setTab("golive")}/>}
         {tab==="golive"&&<GoLiveView user={user} notify={notify} onDone={(post)=>{ refreshFeed(); setTab("live"); openLive(post); }}/>}
         {tab==="reels"&&<ReelsView posts={posts} user={user} notify={notify} refreshFeed={refreshFeed} fireBurst={fireBurst}/>}
-        {tab==="search"&&<SearchView user={user} notify={notify} onOpenChat={setChatPartner}/>}
-        {tab==="inbox"&&<InboxView user={user} onOpenChat={setChatPartner} notify={notify} notifications={notifications}/>}
-        {tab==="profile"&&<ProfileView user={user} onLogout={handleLogout} onGoWallet={()=>setTab("wallet")} notify={notify} onUserUpdate={setUser}/>}
+        {tab==="search"&&<SearchView user={user} notify={notify} onOpenChat={setChatPartner} onOpenProfile={openUserProfile}/>}
+        {tab==="inbox"&&<InboxView user={user} onOpenChat={setChatPartner} notify={notify} notifications={notifications} onOpenProfile={openUserProfile}/>}
+        {tab==="profile"&&<ProfileView user={user} onLogout={handleLogout} onGoWallet={()=>setTab("wallet")} notify={notify} onUserUpdate={setUser} onOpenProfile={openUserProfile}/>}
         {tab==="wallet"&&<WalletView user={user} notify={notify} onRefreshUser={(bal)=>setUser(u=>({...u,coinBalance:bal}))}/>}
         {tab==="create"&&<CreateView user={user} notify={notify} onDone={()=>{ refreshFeed(); setTab("home"); notify("Posted!"); }}/>}
       </div>
