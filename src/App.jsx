@@ -347,11 +347,17 @@ function GiftSheet({balance,onClose,onSend}){
 }
 
 // ── Post Card ─────────────────────────────────────────────────────────────────
-function PostCard({post,user,onLike,onOpenComments,onOpenGift,onOpenLive,onOpenMedia,onDelete,onOpenProfile}){
+function PostCard({post,user,onLike,onOpenComments,onOpenGift,onOpenLive,onOpenMedia,onDelete,onOpenProfile,onSetReaction}){
   const liked=post.likes?.includes(user.userId);
   const author=post.author;
   const canDelete=post.userId===user.userId||user.isAdmin;
   const [menuOpen,setMenuOpen]=useState(false);
+  const [showPicker,setShowPicker]=useState(false);
+  const reactions=post.reactions||[];
+  const myReaction=reactions.find(r=>r.userId===user.userId)?.reaction;
+  const counts={}; reactions.forEach(r=>{counts[r.reaction]=(counts[r.reaction]||0)+1;});
+  const topTypes=Object.keys(counts).sort((a,b)=>counts[b]-counts[a]).slice(0,2);
+  const myReactionEmoji=REACTIONS.find(r=>r.id===myReaction)?.emoji;
   return (
     <div style={{background:"#1C1233",border:"1px solid #2E1F4D",borderRadius:18,overflow:"hidden",marginBottom:14}}>
       <div style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",cursor:"pointer"}} onClick={()=>onOpenProfile?.(post.userId)}>
@@ -384,8 +390,26 @@ function PostCard({post,user,onLike,onOpenComments,onOpenGift,onOpenLive,onOpenM
         <img src={post.mediaData} alt="post" style={{width:"100%",maxHeight:400,objectFit:"cover",display:"block",cursor:"pointer"}} onClick={()=>onOpenMedia(post)}/>
       ):null}
       {post.caption&&<p style={{padding:"8px 14px",color:"#F4EEFF",fontSize:14,lineHeight:1.5}}>{post.caption}</p>}
-      <div style={{display:"flex",alignItems:"center",gap:16,padding:"10px 14px",borderTop:"1px solid #2E1F4D"}}>
-        <button onClick={()=>onLike(post)} style={{display:"flex",alignItems:"center",gap:5,background:"none",border:"none",cursor:"pointer",color:liked?"#FF4D6D":"#9B8FC0",fontSize:13}}><Icon name="heart" size={16} color={liked?"#FF4D6D":"#9B8FC0"} fill={liked?"#FF4D6D":"none"}/> {post.likes?.length||0}</button>
+      <div style={{display:"flex",alignItems:"center",gap:16,padding:"10px 14px",borderTop:"1px solid #2E1F4D",position:"relative"}}>
+        {showPicker&&(
+          <div style={{position:"absolute",bottom:"100%",left:10,marginBottom:6,background:"#242830",border:"1px solid #3A2A5C",borderRadius:999,padding:"6px 8px",display:"flex",gap:6,boxShadow:"0 8px 20px rgba(0,0,0,.4)",zIndex:5}}>
+            {REACTIONS.map(r=>(
+              <button key={r.id} onClick={()=>{onSetReaction(post,r.id);setShowPicker(false);}} style={{background:"none",border:"none",fontSize:22,cursor:"pointer",transform: myReaction===r.id?"scale(1.2)":"scale(1)"}}>{r.emoji}</button>
+            ))}
+          </div>
+        )}
+        <button
+          onClick={()=>{ if(myReaction){onSetReaction(post,null);} else {onSetReaction(post,"heart");} }}
+          onContextMenu={(e)=>{e.preventDefault();setShowPicker(v=>!v);}}
+          onMouseDown={()=>{ window.__pressTimer=setTimeout(()=>setShowPicker(true),400); }}
+          onMouseUp={()=>clearTimeout(window.__pressTimer)}
+          onTouchStart={()=>{ window.__pressTimer=setTimeout(()=>setShowPicker(true),400); }}
+          onTouchEnd={()=>clearTimeout(window.__pressTimer)}
+          style={{display:"flex",alignItems:"center",gap:5,background:"none",border:"none",cursor:"pointer",color:myReaction?"#FF4D6D":"#9B8FC0",fontSize:13}}>
+          {myReactionEmoji?<span style={{fontSize:16}}>{myReactionEmoji}</span>:<Icon name="heart" size={16} color="#9B8FC0" fill="none"/>}
+          {topTypes.length>0&&<span style={{fontSize:12}}>{topTypes.map(t=>REACTIONS.find(r=>r.id===t)?.emoji).join("")}</span>}
+          {reactions.length||0}
+        </button>
         <button onClick={()=>onOpenComments(post)} style={{display:"flex",alignItems:"center",gap:5,background:"none",border:"none",cursor:"pointer",color:"#9B8FC0",fontSize:13}}><Icon name="comment" size={16}/> {post.comments?.length||0}</button>
         <button onClick={()=>onOpenGift(post)} style={{display:"flex",alignItems:"center",gap:5,background:"none",border:"none",cursor:"pointer",color:"#FFD166",fontSize:13}}><Icon name="gift" size={16} color="#FFD166"/> Gift</button>
         <button style={{display:"flex",alignItems:"center",gap:5,background:"none",border:"none",cursor:"pointer",color:"#9B8FC0",fontSize:13,marginLeft:"auto"}}><Icon name="share" size={15}/></button>
@@ -423,6 +447,13 @@ function FeedView({posts,user,refreshFeed,notify,fireBurst,onOpenLive,onOpenProf
     const liked=post.likes?.includes(user.userId);
     try{ await db.toggleLike(post.postId,user.userId,liked); refreshFeed(); }catch(e){ notify("Could not like"); }
   }
+  async function handleSetReaction(post,reactionId){
+    try{
+      if(!reactionId) await db.removePostReaction(post.postId,user.userId);
+      else await db.setPostReaction(post.postId,user.userId,reactionId);
+      refreshFeed();
+    }catch(e){ notify("Could not react"); }
+  }
   async function handleAddComment(text){
     try{ await db.addComment(commentPost.postId,user.userId,text); await refreshFeed();
       setCommentPost(prev=>prev?{...prev}:null);
@@ -451,7 +482,7 @@ function FeedView({posts,user,refreshFeed,notify,fireBurst,onOpenLive,onOpenProf
   return (
     <div style={{padding:"10px 12px"}}>
       {visible.length===0&&<div style={{textAlign:"center",padding:"60px 0",color:"#9B8FC0"}}><div style={{marginBottom:8,display:"flex",justifyContent:"center",color:"#3A2A5C"}}><Icon name="image" size={36}/></div><p>No posts yet — tap + to post!</p></div>}
-      {visible.map(post=><PostCard key={post.postId} post={post} user={user} onLike={handleLike} onOpenComments={setCommentPost} onOpenGift={setGiftPost} onOpenLive={onOpenLive} onOpenMedia={setMediaPost} onDelete={setConfirmDelete} onOpenProfile={onOpenProfile}/>)}
+      {visible.map(post=><PostCard key={post.postId} post={post} user={user} onLike={handleLike} onOpenComments={setCommentPost} onOpenGift={setGiftPost} onOpenLive={onOpenLive} onOpenMedia={setMediaPost} onDelete={setConfirmDelete} onOpenProfile={onOpenProfile} onSetReaction={handleSetReaction}/>)}
       {commentPost&&<CommentSheet post={posts.find(p=>p.postId===commentPost.postId)||commentPost} user={user} onClose={()=>setCommentPost(null)} onAddComment={handleAddComment} onReact={handleReact} onDeleteComment={handleDeleteComment}/>}
       {giftPost&&<GiftSheet balance={user.coinBalance} onClose={()=>setGiftPost(null)} onSend={handleSendGift}/>}
       {mediaPost&&<MediaViewerModal post={mediaPost} onClose={()=>setMediaPost(null)}/>}
