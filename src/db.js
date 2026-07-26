@@ -113,7 +113,7 @@ export async function suggestedUsers(excludeUserId, limit = 10) {
 // ── Friend requests / friendships ───────────────────────────────────────────
 export async function sendFriendRequest(fromId, toId) {
   const { error } = await supabase.from("friend_requests").insert({ from_id: fromId, to_id: toId });
-  if (error && error.code !== "23505") throw error; // 23505 = duplicate, treat as already-sent
+  if (error && error.code !== "23505") throw error;
   if (error && error.code === "23505") return { already: true };
   await addNotification(toId, "ne aapko friend request bheji hai");
   return { already: false };
@@ -162,6 +162,53 @@ export async function getFriends(userId) {
     const otherId = isA ? row.user_b : row.user_a;
     return { userId: otherId, username: other?.username, profilePic: other?.profile_pic, verified: other?.verified };
   });
+}
+
+// ── Follow system ─────────────────────────────────────────────────────────────
+export async function followUser(followerId, followingId) {
+  const { error } = await supabase.from("follows").insert({ follower_id: followerId, following_id: followingId });
+  if (error && error.code !== "23505") throw error;
+  await addNotification(followingId, "ne aapko follow kiya hai");
+}
+
+export async function unfollowUser(followerId, followingId) {
+  const { error } = await supabase.from("follows").delete().eq("follower_id", followerId).eq("following_id", followingId);
+  if (error) throw error;
+}
+
+export async function isFollowing(followerId, followingId) {
+  const { data, error } = await supabase
+    .from("follows")
+    .select("follower_id")
+    .eq("follower_id", followerId)
+    .eq("following_id", followingId)
+    .maybeSingle();
+  if (error) return false;
+  return !!data;
+}
+
+export async function getFollowCounts(userId) {
+  const { data, error } = await supabase.rpc("get_follow_counts", { p_user_id: userId });
+  if (error || !data || !data[0]) return { followers: 0, following: 0 };
+  return { followers: Number(data[0].followers_count) || 0, following: Number(data[0].following_count) || 0 };
+}
+
+export async function getFollowers(userId) {
+  const { data, error } = await supabase
+    .from("follows")
+    .select("follower_id, profiles:follower_id(user_id, username, profile_pic, verified)")
+    .eq("following_id", userId);
+  if (error) return [];
+  return data.map((r) => toUser(r.profiles));
+}
+
+export async function getFollowing(userId) {
+  const { data, error } = await supabase
+    .from("follows")
+    .select("following_id, profiles:following_id(user_id, username, profile_pic, verified)")
+    .eq("follower_id", userId);
+  if (error) return [];
+  return data.map((r) => toUser(r.profiles));
 }
 
 // ── Posts / feed ──────────────────────────────────────────────────────────────
@@ -221,7 +268,7 @@ async function attachLikesAndComments(posts) {
   if (posts.length === 0) return posts;
   const ids = posts.map((p) => p.postId);
   const [{ data: likeRows }, { data: commentRows }] = await Promise.all([
-    supabase.from("likes").select("post_id, user_id").in("post_id", ids),
+    supabase.from("likes").select("post_id, user_id, reaction").in("post_id", ids),
     supabase
       .from("comments")
       .select("id, post_id, user_id, text, is_gift, reaction, created_at, profiles:user_id(username, profile_pic)")
@@ -229,8 +276,10 @@ async function attachLikesAndComments(posts) {
       .order("created_at", { ascending: true }),
   ]);
   const likesByPost = {};
+  const reactionsByPost = {};
   (likeRows || []).forEach((r) => {
     (likesByPost[r.post_id] ||= []).push(r.user_id);
+    (reactionsByPost[r.post_id] ||= []).push({ userId: r.user_id, reaction: r.reaction || "heart" });
   });
   const commentsByPost = {};
   (commentRows || []).forEach((r) => {
@@ -248,6 +297,7 @@ async function attachLikesAndComments(posts) {
   return posts.map((p) => ({
     ...p,
     likes: likesByPost[p.postId] || [],
+    reactions: reactionsByPost[p.postId] || [],
     comments: commentsByPost[p.postId] || [],
   }));
 }
@@ -276,9 +326,12 @@ export async function createLivePost({ userId, caption, roomName }) {
     .single();
   if (error) throw error;
   return toPost(data);
-  }
-  export async function endLivePost(postId) {
+}
+export async function endLivePost(postId) {
   const { error } = await supabase.from("posts").delete().eq("post_id", postId);
+  if (error) throw error;
+}
+const { error } = await supabase.from("posts").delete().eq("post_id", postId);
   if (error) throw error;
 }
 
@@ -292,9 +345,22 @@ export async function toggleLike(postId, userId, currentlyLiked) {
     const { error } = await supabase.from("likes").delete().eq("post_id", postId).eq("user_id", userId);
     if (error) throw error;
   } else {
-    const { error } = await supabase.from("likes").insert({ post_id: postId, user_id: userId });
+    const { error } = await supabase.from("likes").insert({ post_id: postId, user_id: userId, reaction: "heart" });
     if (error && error.code !== "23505") throw error;
   }
+}
+
+// ── Post reactions (❤️ 😂 😢) ────────────────────────────────────────────────
+export async function setPostReaction(postId, userId, reaction) {
+  const { error } = await supabase
+    .from("likes")
+    .upsert({ post_id: postId, user_id: userId, reaction }, { onConflict: "post_id,user_id" });
+  if (error) throw error;
+}
+
+export async function removePostReaction(postId, userId) {
+  const { error } = await supabase.from("likes").delete().eq("post_id", postId).eq("user_id", userId);
+  if (error) throw error;
 }
 
 export async function addComment(postId, userId, text, isGift = false) {
@@ -357,7 +423,7 @@ export async function sendGift({ fromId, toId, postId, gift }) {
     if (error.message?.includes("INSUFFICIENT_COINS")) throw new Error("INSUFFICIENT_COINS");
     throw error;
   }
-  return data; // new sender balance
+  return data;
 }
 
 export async function createTransaction({ userId, type, amountPKR, coins, method, reference }) {
@@ -380,7 +446,7 @@ export async function requestWithdraw({ userId, coins, method, reference }) {
     if (error.message?.includes("INSUFFICIENT_COINS")) throw new Error("INSUFFICIENT_COINS");
     throw error;
   }
-  return data; // new transaction id
+  return data;
 }
 
 export async function debitCoinsForWithdraw(userId, coins) {
@@ -459,7 +525,7 @@ export async function adminRejectWithdraw(txId) {
 // ── Notifications ─────────────────────────────────────────────────────────────
 export async function addNotification(userId, body) {
   await supabase.from("notifications").insert({ user_id: userId, body });
-    }
+}
 export async function getNotifications(userId) {
   const { data, error } = await supabase
     .from("notifications")
@@ -524,9 +590,8 @@ export async function fetchConversationsList(userId) {
 
 // ── Realtime subscriptions ───────────────────────────────────────────────────
 export function subscribeToPostChanges(callback) {
-
-const channel = supabase
-  .channel("posts-changes-" + Math.random().toString(36).slice(2))
+  const channel = supabase
+    .channel("posts-changes-" + Math.random().toString(36).slice(2))
     .on("postgres_changes", { event: "*", schema: "public", table: "posts" }, callback)
     .on("postgres_changes", { event: "*", schema: "public", table: "likes" }, callback)
     .on("postgres_changes", { event: "*", schema: "public", table: "comments" }, callback)
@@ -559,6 +624,7 @@ export function subscribeToNotifications(userId, callback) {
     .subscribe();
   return () => supabase.removeChannel(channel);
 }
+
 // ── Live co-host (multi-host) ──────────────────────────────────────────────
 export async function sendCohostRequest(roomName, hostId, guestId) {
   const { error } = await supabase
@@ -591,72 +657,4 @@ export async function respondCohostRequest(requestId, accept) {
     .update({ status: accept ? "accepted" : "declined" })
     .eq("id", requestId);
   if (error) throw error;
-}
-
-export async function getActiveCohosts(roomName) {
-  const { data, error } = await supabase
-    .from("live_cohost_requests")
-    .select("guest_id, profiles:guest_id(username)")
-    .eq("room_name", roomName)
-    .eq("status", "accepted");
-  if (error) return [];
-  return data.map((r) => ({ userId: r.guest_id, username: r.profiles?.username }));
-}
-
-export function subscribeToCohostRequests(guestId, callback) {
-  const channel = supabase
-    .channel(`cohost-${guestId}`)
-    .on(
-      "postgres_changes",
-      { event: "INSERT", schema: "public", table: "live_cohost_requests", filter: `guest_id=eq.${guestId}` },
-      callback
-    )
-    .subscribe();
-  return () => supabase.removeChannel(channel);
-}
-// ── Follow system ─────────────────────────────────────────────────────────────
-export async function followUser(followerId, followingId) {
-  const { error } = await supabase.from("follows").insert({ follower_id: followerId, following_id: followingId });
-  if (error && error.code !== "23505") throw error; // 23505 = already following, ignore
-  await addNotification(followingId, "ne aapko follow kiya hai");
-}
-
-export async function unfollowUser(followerId, followingId) {
-  const { error } = await supabase.from("follows").delete().eq("follower_id", followerId).eq("following_id", followingId);
-  if (error) throw error;
-}
-
-export async function isFollowing(followerId, followingId) {
-  const { data, error } = await supabase
-    .from("follows")
-    .select("follower_id")
-    .eq("follower_id", followerId)
-    .eq("following_id", followingId)
-    .maybeSingle();
-  if (error) return false;
-  return !!data;
-}
-
-export async function getFollowCounts(userId) {
-  const { data, error } = await supabase.rpc("get_follow_counts", { p_user_id: userId });
-  if (error || !data || !data[0]) return { followers: 0, following: 0 };
-  return { followers: Number(data[0].followers_count) || 0, following: Number(data[0].following_count) || 0 };
-}
-
-export async function getFollowers(userId) {
-  const { data, error } = await supabase
-    .from("follows")
-    .select("follower_id, profiles:follower_id(user_id, username, profile_pic, verified)")
-    .eq("following_id", userId);
-  if (error) return [];
-  return data.map((r) => toUser(r.profiles));
-}
-
-export async function getFollowing(userId) {
-  const { data, error } = await supabase
-    .from("follows")
-    .select("following_id, profiles:following_id(user_id, username, profile_pic, verified)")
-    .eq("follower_id", userId);
-  if (error) return [];
-  return data.map((r) => toUser(r.profiles));
-}
+      }
