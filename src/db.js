@@ -614,3 +614,49 @@ export function subscribeToCohostRequests(guestId, callback) {
     .subscribe();
   return () => supabase.removeChannel(channel);
 }
+// ── Follow system ─────────────────────────────────────────────────────────────
+export async function followUser(followerId, followingId) {
+  const { error } = await supabase.from("follows").insert({ follower_id: followerId, following_id: followingId });
+  if (error && error.code !== "23505") throw error; // 23505 = already following, ignore
+  await addNotification(followingId, "ne aapko follow kiya hai");
+}
+
+export async function unfollowUser(followerId, followingId) {
+  const { error } = await supabase.from("follows").delete().eq("follower_id", followerId).eq("following_id", followingId);
+  if (error) throw error;
+}
+
+export async function isFollowing(followerId, followingId) {
+  const { data, error } = await supabase
+    .from("follows")
+    .select("follower_id")
+    .eq("follower_id", followerId)
+    .eq("following_id", followingId)
+    .maybeSingle();
+  if (error) return false;
+  return !!data;
+}
+
+export async function getFollowCounts(userId) {
+  const { data, error } = await supabase.rpc("get_follow_counts", { p_user_id: userId });
+  if (error || !data || !data[0]) return { followers: 0, following: 0 };
+  return { followers: Number(data[0].followers_count) || 0, following: Number(data[0].following_count) || 0 };
+}
+
+export async function getFollowers(userId) {
+  const { data, error } = await supabase
+    .from("follows")
+    .select("follower_id, profiles:follower_id(user_id, username, profile_pic, verified)")
+    .eq("following_id", userId);
+  if (error) return [];
+  return data.map((r) => toUser(r.profiles));
+}
+
+export async function getFollowing(userId) {
+  const { data, error } = await supabase
+    .from("follows")
+    .select("following_id, profiles:following_id(user_id, username, profile_pic, verified)")
+    .eq("follower_id", userId);
+  if (error) return [];
+  return data.map((r) => toUser(r.profiles));
+}
