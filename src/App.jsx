@@ -9,7 +9,7 @@ const LIVEKIT_URL = import.meta.env.VITE_LIVEKIT_URL || "wss://lahar-40sq54fh.li
 async function fetchLiveKitToken({ room, identity, name, canPublish }) {
   const params = new URLSearchParams({ room, identity, name, canPublish: canPublish ? "true" : "false" });
   const res = await fetch(`/api/get-livekit-token?${params.toString()}`);
-  if (!res.ok) throw new Error("Token nahi mil saka");
+  if (!res.ok) throw new Error("Could not get token");
   const data = await res.json();
   return data.token;
 }
@@ -53,6 +53,7 @@ const SVGIC = {
   more: "M12 5m-1.2 0a1.2 1.2 0 1 0 2.4 0a1.2 1.2 0 1 0 -2.4 0 M12 12m-1.2 0a1.2 1.2 0 1 0 2.4 0a1.2 1.2 0 1 0 -2.4 0 M12 19m-1.2 0a1.2 1.2 0 1 0 2.4 0a1.2 1.2 0 1 0 -2.4 0",
   image: "M3 4h18v16H3z M8.5 10.5m-1.5 0a1.5 1.5 0 1 0 3 0a1.5 1.5 0 1 0 -3 0 M21 15l-5-5-9 9",
   play: "M6 4l14 8-14 8z",
+  pause: "M7 4h4v16H7z M13 4h4v16h-4z",
   eye: "M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z M12 12m-3 0a3 3 0 1 0 6 0a3 3 0 1 0 -6 0",
   send: "M22 2L11 13 M22 2l-7 20-4-9-9-4z",
   wallet: "M3 7h15a3 3 0 0 1 3 3v7a3 3 0 0 1-3 3H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h13 M16 13m-1.5 0a1.5 1.5 0 1 0 3 0a1.5 1.5 0 1 0 -3 0",
@@ -73,21 +74,21 @@ function Icon({name,size=18,color="currentColor",fill="none",strokeWidth=1.8}){
 }
 function WaveLogo({size=36}){
   return (
-    <svg width={size} height={size} viewBox="0 0 40 40" fill="none">
+    <svg width={size} height={size} viewBox="0 0 52 52" fill="none">
       <defs>
-        <linearGradient id="lgLogo" x1="0" y1="0" x2="40" y2="40">
-          <stop offset="0%" stopColor="#F472B6"/>
-          <stop offset="100%" stopColor="#7C3AED"/>
-        </linearGradient>
-        <linearGradient id="lgLogoBg" x1="0" y1="0" x2="40" y2="40">
-          <stop offset="0%" stopColor="#2E1F4D"/>
-          <stop offset="100%" stopColor="#1C1233"/>
-        </linearGradient>
+        <radialGradient id="lgLogo" cx="35%" cy="30%" r="75%">
+          <stop offset="0%" stopColor="#F0A6E0"/>
+          <stop offset="45%" stopColor="#B565E8"/>
+          <stop offset="100%" stopColor="#6D28D9"/>
+        </radialGradient>
+        <clipPath id="lgLogoClip"><circle cx="26" cy="26" r="21"/></clipPath>
       </defs>
-      <rect x="0" y="0" width="40" height="40" rx="12" fill="url(#lgLogoBg)"/>
-      <rect x="0.5" y="0.5" width="39" height="39" rx="11.5" stroke="rgba(168,85,247,0.4)"/>
-      <path d="M6 24c2.5-4 5-4 7.5 0s5 4 7.5 0 5-4 7.5 0" stroke="url(#lgLogo)" strokeWidth="2.4" strokeLinecap="round"/>
-      <path d="M6 17c2.5-4 5-4 7.5 0s5 4 7.5 0 5-4 7.5 0" stroke="url(#lgLogo)" strokeWidth="1.6" strokeLinecap="round" opacity="0.55"/>
+      <circle cx="26" cy="26" r="21" fill="url(#lgLogo)"/>
+      <g clipPath="url(#lgLogoClip)" opacity="0.9">
+        <path d="M2 32c5-5 9-5 14 0s9 5 14 0 9-5 14 0v20H2z" fill="#160D26" opacity="0.35"/>
+        <path d="M2 26c5-5 9-5 14 0s9 5 14 0 9-5 14 0" stroke="#fff" strokeWidth="1.6" fill="none" opacity="0.8"/>
+      </g>
+      <circle cx="19" cy="18" r="3.5" fill="#fff" opacity="0.5"/>
     </svg>
   );
 }
@@ -122,7 +123,7 @@ const REACTIONS = [
 // ── Helpers ──────────────────────────────────────────────────────────────────
 function uid(p){ return `${p}${Date.now().toString(36)}${Math.random().toString(36).slice(2,8)}`; }
 function avatarColor(name){ let h=0; for(let i=0;i<(name||"").length;i++) h=(h+name.charCodeAt(i))%AVATAR_COLORS.length; return AVATAR_COLORS[h]; }
-function timeAgo(ts){ const d=Math.max(0,Date.now()-ts),m=Math.floor(d/60000); if(m<1)return"abhi"; if(m<60)return`${m}m`; const h=Math.floor(m/60); if(h<24)return`${h}h`; return`${Math.floor(h/24)}d`; }
+function timeAgo(ts){ const d=Math.max(0,Date.now()-ts),m=Math.floor(d/60000); if(m<1)return"just now"; if(m<60)return`${m}m`; const h=Math.floor(m/60); if(h<24)return`${h}h`; return`${Math.floor(h/24)}d`; }
 
 // ── UI Primitives ─────────────────────────────────────────────────────────────
 function Avatar({name,size=40,live=false,pic=null,verified=false}){
@@ -226,22 +227,22 @@ function AuthScreen({notify}){
 
   async function handleSubmit(){
     const em=email.trim().toLowerCase();
-    if(!em.includes("@"))return notify("Sahi email likhein");
-    if(password.length<6)return notify("Password kam az kam 6 huroof ka ho");
+    if(!em.includes("@"))return notify("Please enter a valid email");
+    if(password.length<6)return notify("Password must be at least 6 characters");
     setBusy(true);
     try{
       if(mode==="signup"){
         const uname=username.trim().toLowerCase();
-        if(uname.length<3){notify("Username 3+ huroof ka ho");setBusy(false);return;}
-        if(!/^[a-z0-9_.]+$/.test(uname)){notify("Username mein sirf huroof, number, _ ya . ho sakte hain");setBusy(false);return;}
-        if(password!==confirm){notify("Password match nahi");setBusy(false);return;}
+        if(uname.length<3){notify("Username must be at least 3 characters");setBusy(false);return;}
+        if(!/^[a-z0-9_.]+$/.test(uname)){notify("Username can only contain letters, numbers, _ or .");setBusy(false);return;}
+        if(password!==confirm){notify("Passwords do not match");setBusy(false);return;}
         await db.signUp({email:em,password,username:uname});
-        notify("Account ban gaya! Login ho rahe hain...");
+        notify("Account created! Logging you in...");
       } else {
         await db.signIn({email:em,password});
       }
     } catch(e){
-      notify(translateAuthError(e?.message)||"Kuch ghalat ho gaya");
+      notify(translateAuthError(e?.message)||"Something went wrong");
     } finally { setBusy(false); }
   }
 
@@ -262,8 +263,8 @@ function AuthScreen({notify}){
         {mode==="signup"&&<input value={username} onChange={e=>setUsername(e.target.value)} placeholder="Username" style={inp}/>}
         <input value={email} onChange={e=>setEmail(e.target.value)} placeholder="Email" type="email" style={inp}/>
         <input value={password} onChange={e=>setPassword(e.target.value)} type="password" placeholder="Password" style={inp}/>
-        {mode==="signup"&&<input value={confirm} onChange={e=>setConfirm(e.target.value)} type="password" placeholder="Password dobara likhein" style={inp}/>}
-        <Btn onClick={handleSubmit} disabled={busy} style={{width:"100%",marginTop:4}}>{mode==="login"?"Login Karein":"Account Banayen"}</Btn>
+        {mode==="signup"&&<input value={confirm} onChange={e=>setConfirm(e.target.value)} type="password" placeholder="Confirm password" style={inp}/>}
+        <Btn onClick={handleSubmit} disabled={busy} style={{width:"100%",marginTop:4}}>{mode==="login"?"Log In":"Create Account"}</Btn>
       </div>
     </div>
   );
@@ -271,10 +272,10 @@ function AuthScreen({notify}){
 
 function translateAuthError(msg){
   if(!msg) return null;
-  if(msg.includes("already registered")||msg.includes("already been registered")) return "Email pehle se mojood hai";
-  if(msg.includes("Invalid login credentials")) return "Email ya password ghalat hai";
-  if(msg.includes("duplicate key")&&msg.includes("username")) return "Username pehle se mojood hai";
-  if(msg.includes("Password should be")) return "Password kam az kam 6 huroof ka ho";
+  if(msg.includes("already registered")||msg.includes("already been registered")) return "Email already exists";
+  if(msg.includes("Invalid login credentials")) return "Incorrect email or password";
+  if(msg.includes("duplicate key")&&msg.includes("username")) return "Username already taken";
+  if(msg.includes("Password should be")) return "Password must be at least 6 characters";
   return msg;
 }
 // ── Comment Sheet ─────────────────────────────────────────────────────────────
@@ -295,8 +296,8 @@ function CommentSheet({post,user,onClose,onAddComment,onReact,onDeleteComment}){
             <div key={c.id} style={{display:"flex",gap:8,alignItems:"flex-start"}}>
               <Avatar name={c.username} size={28} pic={c.profilePic}/>
               <div style={{background:"#120A22",borderRadius:10,padding:"6px 10px",flex:1}}>
-                <span style={{fontWeight:700,color:"#F4EEFF",fontSize:12}}>{c.username} </span>
-                <span style={{color:c.isGift?"#FFD166":"#D9CCF0",fontSize:13}}>{c.text}</span>
+                <div style={{fontWeight:700,color:"#F4EEFF",fontSize:12}}>{c.username}</div>
+                <div style={{color:c.isGift?"#FFD166":"#D9CCF0",fontSize:13,marginTop:2}}>{c.text}</div>
                 <div style={{display:"flex",alignItems:"center",gap:6,marginTop:4}}>
                   {REACTIONS.map(r=>(
                     <button key={r.id} onClick={()=>onReact(c,r.id)} style={{background:c.reaction===r.id?"rgba(212,175,106,.25)":"none",border:"none",cursor:"pointer",fontSize:13,borderRadius:8,padding:"1px 4px",opacity:c.reaction===r.id?1:0.55}}>{r.emoji}</button>
@@ -308,11 +309,11 @@ function CommentSheet({post,user,onClose,onAddComment,onReact,onDeleteComment}){
               </div>
             </div>
           ))}
-          {(post.comments||[]).length===0&&<p style={{color:"#9B8FC0",fontSize:13,textAlign:"center",padding:"20px 0"}}>Koi comment nahi — pehle aap karein!</p>}
+          {(post.comments||[]).length===0&&<p style={{color:"#9B8FC0",fontSize:13,textAlign:"center",padding:"20px 0"}}>No comments yet — be the first!</p>}
         </div>
         <div style={{display:"flex",gap:8,padding:10,borderTop:"1px solid #2E1F4D"}}>
           <Avatar name={user.username} size={28} pic={user.profilePic}/>
-          <input value={text} onChange={e=>setText(e.target.value)} onKeyDown={e=>e.key==="Enter"&&text.trim()&&(onAddComment(text.trim()),setText(""))} placeholder="Comment likhein..." style={inp}/>
+          <input value={text} onChange={e=>setText(e.target.value)} onKeyDown={e=>e.key==="Enter"&&text.trim()&&(onAddComment(text.trim()),setText(""))} placeholder="Write a comment..." style={inp}/>
           <button onClick={()=>{if(text.trim()){onAddComment(text.trim());setText("");}}} style={{background:"#FFD166",color:"#120A22",border:"none",borderRadius:999,padding:"0 14px",fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center"}}><Icon name="send" size={15} color="#120A22"/></button>
         </div>
       </div>
@@ -327,7 +328,7 @@ function GiftSheet({balance,onClose,onSend}){
       <div style={{flex:1}} onClick={onClose}/>
       <div style={{background:"#1C1233",borderTop:"1px solid #2E1F4D",borderRadius:"20px 20px 0 0"}}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"12px 16px",borderBottom:"1px solid #2E1F4D"}}>
-          <span style={{fontWeight:700,color:"#F4EEFF",display:"flex",alignItems:"center",gap:6}}><Icon name="gift" size={16} color="#FFD166"/> Gift Bhejein</span>
+          <span style={{fontWeight:700,color:"#F4EEFF",display:"flex",alignItems:"center",gap:6}}><Icon name="gift" size={16} color="#FFD166"/> Send Gift</span>
           <CoinPill value={balance}/>
         </div>
         <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8,padding:14,maxHeight:240,overflowY:"auto"}}>
@@ -339,7 +340,7 @@ function GiftSheet({balance,onClose,onSend}){
             </button>
           ))}
         </div>
-        <p style={{textAlign:"center",color:"#9B8FC0",fontSize:11,paddingBottom:12}}>Coins kam hain? Wallet se khareedein</p>
+        <p style={{textAlign:"center",color:"#9B8FC0",fontSize:11,paddingBottom:12}}>Low on coins? Top up from Wallet</p>
       </div>
     </div>
   );
@@ -393,7 +394,7 @@ function PostCard({post,user,onLike,onOpenComments,onOpenGift,onOpenLive,onOpenM
   );
 }
 
-// ── Fullscreen Media Viewer (fixes "video post pe click karke open nahi hota") ─
+// ── Fullscreen Media Viewer (fixes "video post opens on click") ─
 function MediaViewerModal({post,onClose}){
   if(!post) return null;
   return (
@@ -401,7 +402,7 @@ function MediaViewerModal({post,onClose}){
       <button onClick={onClose} style={{position:"absolute",top:14,right:14,background:"rgba(255,255,255,.15)",border:"none",borderRadius:"50%",width:34,height:34,color:"#fff",cursor:"pointer",zIndex:5,display:"flex",alignItems:"center",justifyContent:"center"}}><Icon name="close" size={17}/></button>
       <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center"}} onClick={e=>e.stopPropagation()}>
         {post.mediaType==="video"?(
-          <video src={post.mediaData} style={{maxWidth:"100%",maxHeight:"100%"}} controls autoPlay playsInline/>
+          <video src={post.mediaData} style={{maxWidth:"100%",maxHeight:"100%"}} controls playsInline/>
         ):(
           <img src={post.mediaData} alt="" style={{maxWidth:"100%",maxHeight:"100%",objectFit:"contain"}}/>
         )}
@@ -420,18 +421,18 @@ function FeedView({posts,user,refreshFeed,notify,fireBurst,onOpenLive}){
 
   async function handleLike(post){
     const liked=post.likes?.includes(user.userId);
-    try{ await db.toggleLike(post.postId,user.userId,liked); refreshFeed(); }catch(e){ notify("Like nahi ho saka"); }
+    try{ await db.toggleLike(post.postId,user.userId,liked); refreshFeed(); }catch(e){ notify("Could not like"); }
   }
   async function handleAddComment(text){
     try{ await db.addComment(commentPost.postId,user.userId,text); await refreshFeed();
       setCommentPost(prev=>prev?{...prev}:null);
-    }catch(e){ notify("Comment nahi ho saka"); }
+    }catch(e){ notify("Could not post comment"); }
   }
   async function handleReact(comment,reaction){
     try{ await db.setCommentReaction(comment.id,comment.reaction===reaction?null:reaction); refreshFeed(); }catch(e){}
   }
   async function handleDeleteComment(comment){
-    try{ await db.deleteComment(comment.id); await refreshFeed(); }catch(e){ notify("Delete nahi ho saka"); }
+    try{ await db.deleteComment(comment.id); await refreshFeed(); }catch(e){ notify("Could not delete"); }
   }
   async function handleSendGift(gift){
     try{
@@ -440,21 +441,21 @@ function FeedView({posts,user,refreshFeed,notify,fireBurst,onOpenLive}){
       setGiftPost(null); refreshFeed();
       window.dispatchEvent(new CustomEvent("lehar:balance",{detail:newBal}));
     }catch(e){
-      notify(e?.message==="INSUFFICIENT_COINS"?"Coins kam hain":"Gift nahi bheja ja saka");
+      notify(e?.message==="INSUFFICIENT_COINS"?"Not enough coins":"Could not send gift");
     }
   }
   async function handleDelete(post){
-    try{ await db.deletePost(post.postId); setConfirmDelete(null); refreshFeed(); notify("Post delete ho gayi"); }
-    catch(e){ notify("Delete nahi ho saka"); }
+    try{ await db.deletePost(post.postId); setConfirmDelete(null); refreshFeed(); notify("Post deleted"); }
+    catch(e){ notify("Could not delete"); }
   }
   return (
     <div style={{padding:"10px 12px"}}>
-      {visible.length===0&&<div style={{textAlign:"center",padding:"60px 0",color:"#9B8FC0"}}><div style={{marginBottom:8,display:"flex",justifyContent:"center",color:"#3A2A5C"}}><Icon name="image" size={36}/></div><p>Koi post nahi — + button se post karein!</p></div>}
+      {visible.length===0&&<div style={{textAlign:"center",padding:"60px 0",color:"#9B8FC0"}}><div style={{marginBottom:8,display:"flex",justifyContent:"center",color:"#3A2A5C"}}><Icon name="image" size={36}/></div><p>No posts yet — tap + to post!</p></div>}
       {visible.map(post=><PostCard key={post.postId} post={post} user={user} onLike={handleLike} onOpenComments={setCommentPost} onOpenGift={setGiftPost} onOpenLive={onOpenLive} onOpenMedia={setMediaPost} onDelete={setConfirmDelete}/>)}
       {commentPost&&<CommentSheet post={posts.find(p=>p.postId===commentPost.postId)||commentPost} user={user} onClose={()=>setCommentPost(null)} onAddComment={handleAddComment} onReact={handleReact} onDeleteComment={handleDeleteComment}/>}
       {giftPost&&<GiftSheet balance={user.coinBalance} onClose={()=>setGiftPost(null)} onSend={handleSendGift}/>}
       {mediaPost&&<MediaViewerModal post={mediaPost} onClose={()=>setMediaPost(null)}/>}
-      {confirmDelete&&<ConfirmDialog title="Post delete karein?" message="Ye post hamesha ke liye delete ho jayegi." onConfirm={()=>handleDelete(confirmDelete)} onCancel={()=>setConfirmDelete(null)}/>}
+      {confirmDelete&&<ConfirmDialog title="Delete this post?" message="This post will be permanently deleted." onConfirm={()=>handleDelete(confirmDelete)} onCancel={()=>setConfirmDelete(null)}/>}
     </div>
   );
 }
@@ -466,10 +467,10 @@ function validateMediaFile(file,{video=true,image=true,maxMB=50}={}){
     return null;
   }
   if(image&&file.type.startsWith("image")){
-    if(file.size>15*1024*1024) return "Image 15MB se choti honi chahiye";
+    if(file.size>15*1024*1024) return "Image must be smaller than 15MB";
     return null;
   }
-  return "Sirf photo ya video upload karein";
+  return "Please upload a photo or video only";
 }
 
 // ── Reel Upload Modal ─────────────────────────────────────────────────────────
@@ -481,19 +482,19 @@ function ReelUploadModal({user,onDone,onClose,notify}){
   const fileRef=useRef(null);
   function onFileChange(e){
     const f=e.target.files?.[0]; if(!f)return;
-    if(!f.type.startsWith("video")){notify("Sirf video upload karein reel mein");return;}
-    if(f.size>50*1024*1024){notify("Video 50MB se choti honi chahiye");return;}
+    if(!f.type.startsWith("video")){notify("Only videos can be uploaded as Reels");return;}
+    if(f.size>50*1024*1024){notify("Video must be smaller than 50MB");return;}
     setFile(f); setPreviewUrl(URL.createObjectURL(f));
   }
   async function submit(){
-    if(!file){notify("Pehle video choose karein");return;}
+    if(!file){notify("Please choose a video first");return;}
     setBusy(true);
     try{
       const mediaUrl=await db.uploadMedia(file,user.userId);
       await db.createPost({userId:user.userId,caption:caption.trim(),mediaUrl,mediaType:"video",isReel:true});
       onDone();
     }catch(e){
-      notify("Upload nahi ho saka — dobara koshish karein");
+      notify("Upload failed — please try again");
     } finally { setBusy(false); }
   }
   const inp={width:"100%",background:"#1C1233",border:"1px solid #2E1F4D",borderRadius:12,padding:"10px 14px",color:"#F4EEFF",fontSize:13,outline:"none",boxSizing:"border-box",resize:"none"};
@@ -512,11 +513,11 @@ function ReelUploadModal({user,onDone,onClose,notify}){
           </div>
         ):(
           <button onClick={()=>fileRef.current?.click()} style={{width:"100%",height:100,border:"2px dashed #3A2A5C",borderRadius:12,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:6,marginBottom:12,background:"none",cursor:"pointer",color:"#9B8FC0"}}>
-            <Icon name="upload" size={28} color="#A855F7"/><span style={{fontSize:13}}>Gallery se Video choose karein</span>
+            <Icon name="upload" size={28} color="#A855F7"/><span style={{fontSize:13}}>Choose a video from gallery</span>
           </button>
         )}
-        <textarea value={caption} onChange={e=>setCaption(e.target.value)} placeholder="Caption likhein (optional)..." rows={2} style={{...inp,marginBottom:12}}/>
-        <Btn onClick={submit} disabled={busy||!file} style={{width:"100%"}}>{busy?"Uploading...":"Reel Post Karein"}</Btn>
+        <textarea value={caption} onChange={e=>setCaption(e.target.value)} placeholder="Write a caption (optional)..." rows={2} style={{...inp,marginBottom:12}}/>
+        <Btn onClick={submit} disabled={busy||!file} style={{width:"100%"}}>{busy?"Uploading...":"Post Reel"}</Btn>
       </div>
     </div>
   );
@@ -531,8 +532,13 @@ function ReelsView({posts,user,notify,refreshFeed,fireBurst}){
   const [showUpload,setShowUpload]=useState(false);
   const [confirmDelete,setConfirmDelete]=useState(null);
   const [muted,setMuted]=useState(false); // sound ON by default — bug fix
+  const [playing,setPlaying]=useState(true);
   const vRef=useRef(null);
-  useEffect(()=>{ if(vRef.current){vRef.current.load();vRef.current.play().catch(()=>{}); } },[current]);
+  useEffect(()=>{ if(vRef.current){vRef.current.load();vRef.current.play().catch(()=>{}); setPlaying(true);} },[current]);
+  function togglePlay(){
+    const v=vRef.current; if(!v) return;
+    if(v.paused){ v.play().catch(()=>{}); setPlaying(true); } else { v.pause(); setPlaying(false); }
+  }
 
   async function handleLike(){
     const post=reels[current]; if(!post)return;
@@ -545,18 +551,18 @@ function ReelsView({posts,user,notify,refreshFeed,fireBurst}){
       const newBal=await db.sendGift({fromId:user.userId,toId:post.userId,postId:post.postId,gift});
 fireBurst({emoji:gift.emoji,name:gift.name,from:user.username,file:gift.file}); setGiftPost(null);
       window.dispatchEvent(new CustomEvent("lehar:balance",{detail:newBal}));
-    }catch(e){ notify(e?.message==="INSUFFICIENT_COINS"?"Coins kam hain":"Gift nahi bheja ja saka"); }
+    }catch(e){ notify(e?.message==="INSUFFICIENT_COINS"?"Not enough coins":"Could not send gift"); }
   }
   async function handleDelete(post){
-    try{ await db.deletePost(post.postId); setConfirmDelete(null); setCurrent(c=>Math.max(0,c-1)); refreshFeed(); notify("Reel delete ho gayi"); }
-    catch(e){ notify("Delete nahi ho saka"); }
+    try{ await db.deletePost(post.postId); setConfirmDelete(null); setCurrent(c=>Math.max(0,c-1)); refreshFeed(); notify("Reel deleted"); }
+    catch(e){ notify("Could not delete"); }
   }
 
   if(reels.length===0) return (
     <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:12,color:"#9B8FC0"}}>
-      <Icon name="reel" size={40} color="#9B8FC0"/><p>Abhi koi Reel nahi</p>
-      <Btn onClick={()=>setShowUpload(true)}>Reel Upload Karein</Btn>
-      {showUpload&&<ReelUploadModal user={user} notify={notify} onClose={()=>setShowUpload(false)} onDone={()=>{setShowUpload(false);refreshFeed();notify("Reel upload ho gayi!");}}/>}
+      <Icon name="reel" size={40} color="#9B8FC0"/><p>No Reels yet</p>
+      <Btn onClick={()=>setShowUpload(true)}>Upload Reel</Btn>
+      {showUpload&&<ReelUploadModal user={user} notify={notify} onClose={()=>setShowUpload(false)} onDone={()=>{setShowUpload(false);refreshFeed();notify("Reel uploaded!");}}/>}
     </div>
   );
 
@@ -566,11 +572,13 @@ fireBurst({emoji:gift.emoji,name:gift.name,from:user.username,file:gift.file}); 
 
   return (
     <div style={{flex:1,position:"relative",background:"#000",overflow:"hidden"}}>
-      <video ref={vRef} src={post.mediaData} style={{width:"100%",height:"100%",objectFit:"cover"}} loop playsInline autoPlay muted={muted} onClick={()=>setMuted(m=>!m)}/>
+      <video ref={vRef} src={post.mediaData} style={{width:"100%",height:"100%",objectFit:"cover"}} loop playsInline autoPlay muted={muted}/>
       <div style={{position:"absolute",inset:0,display:"flex",pointerEvents:"none"}}>
         <div style={{flex:1,pointerEvents:"auto"}} onClick={()=>setCurrent(c=>Math.max(0,c-1))}/>
+        <div style={{flex:1.4,pointerEvents:"auto"}} onClick={togglePlay}/>
         <div style={{flex:1,pointerEvents:"auto"}} onClick={()=>setCurrent(c=>Math.min(reels.length-1,c+1))}/>
       </div>
+      {!playing&&<div style={{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center",pointerEvents:"none"}}><div style={{background:"rgba(0,0,0,.45)",borderRadius:"50%",width:64,height:64,display:"flex",alignItems:"center",justifyContent:"center"}}><Icon name="play" size={28} color="#fff" fill="#fff"/></div></div>}
       <button onClick={()=>setMuted(m=>!m)} style={{position:"absolute",top:10,left:10,background:"rgba(0,0,0,.4)",border:"none",borderRadius:"50%",width:32,height:32,color:"#fff",cursor:"pointer",zIndex:5,display:"flex",alignItems:"center",justifyContent:"center"}}><Icon name={muted?"mute":"unmute"} size={15}/></button>
       <div style={{position:"absolute",right:12,bottom:100,display:"flex",flexDirection:"column",alignItems:"center",gap:18}}>
         <button onClick={handleLike} style={{display:"flex",flexDirection:"column",alignItems:"center",background:"none",border:"none",cursor:"pointer"}}>
@@ -599,8 +607,8 @@ fireBurst({emoji:gift.emoji,name:gift.name,from:user.username,file:gift.file}); 
         try{ await db.addComment(commentPost.postId,user.userId,text); refreshFeed(); }catch(e){}
       }} onReact={async(comment,reaction)=>{ try{ await db.setCommentReaction(comment.id,comment.reaction===reaction?null:reaction); refreshFeed(); }catch(e){} }} onDeleteComment={async(comment)=>{ try{ await db.deleteComment(comment.id); refreshFeed(); }catch(e){} }}/>}
       {giftPost&&<GiftSheet balance={user.coinBalance} onClose={()=>setGiftPost(null)} onSend={handleSendGift}/>}
-      {showUpload&&<ReelUploadModal user={user} notify={notify} onClose={()=>setShowUpload(false)} onDone={()=>{setShowUpload(false);refreshFeed();notify("Reel upload ho gayi!");}}/>}
-      {confirmDelete&&<ConfirmDialog title="Reel delete karein?" message="Ye reel hamesha ke liye delete ho jayegi." onConfirm={()=>handleDelete(confirmDelete)} onCancel={()=>setConfirmDelete(null)}/>}
+      {showUpload&&<ReelUploadModal user={user} notify={notify} onClose={()=>setShowUpload(false)} onDone={()=>{setShowUpload(false);refreshFeed();notify("Reel uploaded!");}}/>}
+      {confirmDelete&&<ConfirmDialog title="Delete this Reel?" message="This Reel will be permanently deleted." onConfirm={()=>handleDelete(confirmDelete)} onCancel={()=>setConfirmDelete(null)}/>}
     </div>
   );
 }
@@ -625,7 +633,7 @@ function CreateView({user,notify,onDone}){
   }
 
   async function submit(){
-    if(!file&&!caption.trim()){notify("Kuch likhein ya media chunein");return;}
+    if(!file&&!caption.trim()){notify("Write something or choose media");return;}
     setBusy(true);
     try{
       let mediaUrl=null;
@@ -633,7 +641,7 @@ function CreateView({user,notify,onDone}){
       const post=await db.createPost({userId:user.userId,caption:caption.trim(),mediaUrl,mediaType:file?mediaType:null,isReel:mediaType==="video"&&isReel});
       onDone(post);
     }catch(e){
-      notify("Upload nahi ho saka — dobara koshish karein");
+      notify("Upload failed — please try again");
     } finally { setBusy(false); }
   }
 
@@ -651,16 +659,16 @@ function CreateView({user,notify,onDone}){
           <Icon name="upload" size={28} color="#A855F7"/><span style={{fontSize:13}}>Gallery se Photo ya Video (optional)</span>
         </button>
       )}
-      <textarea value={caption} onChange={e=>setCaption(e.target.value)} placeholder="Kuch likhein... (text, status, etc.)" rows={4} style={{...inp,marginBottom:12}}/>
+      <textarea value={caption} onChange={e=>setCaption(e.target.value)} placeholder="Write something... (text, status, etc.)" rows={4} style={{...inp,marginBottom:12}}/>
       {mediaType==="video"&&(
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",background:"#1C1233",border:"1px solid #2E1F4D",borderRadius:12,padding:"10px 14px",marginBottom:12}}>
-          <span style={{color:"#D9CCF0",fontSize:13}}>Reel ki tarah post karein</span>
+          <span style={{color:"#D9CCF0",fontSize:13}}>Post as a Reel</span>
           <button onClick={()=>setIsReel(v=>!v)} style={{width:40,height:22,borderRadius:999,border:"none",background:isReel?"#FFD166":"#3A2A5C",cursor:"pointer",position:"relative",transition:"all .2s"}}>
             <div style={{width:18,height:18,background:"#fff",borderRadius:"50%",position:"absolute",top:2,left:isReel?20:2,transition:"all .2s"}}/>
           </button>
         </div>
       )}
-      <Btn onClick={submit} disabled={busy} style={{width:"100%"}}>{busy?"Uploading...":"Post Karein"}</Btn>
+      <Btn onClick={submit} disabled={busy} style={{width:"100%"}}>{busy?"Uploading...":"Post"}</Btn>
     </div>
   );
 }
@@ -679,21 +687,21 @@ function GoLiveView({user,onDone,notify}){
         setPreviewStream(stream);
         if(videoRef.current) videoRef.current.srcObject=stream;
       }catch(e){
-        notify("Camera/Mic ki permission nahi mili — browser settings mein permission den");
+        notify("Camera/Mic permission denied — please allow access in browser settings");
       }
     })();
     return ()=>{ stream?.getTracks().forEach(t=>t.stop()); };
   },[]);
 
   async function startLive(){
-    if(!previewStream){notify("Camera tayyar nahi hai");return;}
+    if(!previewStream){notify("Camera is not ready");return;}
     setBusy(true);
     try{
       const roomName=uid("room_");
       const post=await db.createLivePost({userId:user.userId,caption:title.trim(),roomName});
       onDone(post);
     }catch(e){
-      notify("Live shuru nahi ho saka");
+      notify("Could not start live stream");
     } finally { setBusy(false); }
   }
 
@@ -702,14 +710,14 @@ function GoLiveView({user,onDone,notify}){
     <div style={{padding:16,display:"flex",flexDirection:"column",height:"100%"}}>
       <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:14}}>
         <WaveLogo size={26}/>
-        <span style={{fontFamily:"'Sora',sans-serif",fontWeight:700,fontSize:15,color:"#F4EEFF"}}>Live Jayen</span>
+        <span style={{fontFamily:"'Sora',sans-serif",fontWeight:700,fontSize:15,color:"#F4EEFF"}}>Go Live</span>
       </div>
       <div style={{position:"relative",borderRadius:18,overflow:"hidden",background:"#000",aspectRatio:"9/14",marginBottom:14,border:"1px solid rgba(168,85,247,0.3)",boxShadow:"0 0 0 4px rgba(168,85,247,0.08)"}}>
         <video ref={videoRef} autoPlay playsInline muted style={{width:"100%",height:"100%",objectFit:"cover",transform:"scaleX(-1)"}}/>
         {previewStream&&<span style={{position:"absolute",top:12,left:12,background:"#E11D48",color:"#fff",fontSize:9,fontWeight:800,padding:"3px 8px",borderRadius:999,display:"flex",alignItems:"center",gap:3,letterSpacing:"0.03em"}}><span style={{width:5,height:5,borderRadius:"50%",background:"#fff",display:"inline-block"}}/> PREVIEW</span>}
-        {!previewStream&&<div style={{position:"absolute",inset:0,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",color:"#9B8FC0",fontSize:13,gap:8}}><Icon name="camera" size={26} color="#3A2A5C"/>Camera load ho rahi hai...</div>}
+        {!previewStream&&<div style={{position:"absolute",inset:0,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",color:"#9B8FC0",fontSize:13,gap:8}}><Icon name="camera" size={26} color="#3A2A5C"/>Loading camera...</div>}
       </div>
-      <input value={title} onChange={e=>setTitle(e.target.value)} placeholder="Live ka title (optional)" style={{...inp,marginBottom:12}}/>
+      <input value={title} onChange={e=>setTitle(e.target.value)} placeholder="Live title (optional)" style={{...inp,marginBottom:12}}/>
       <Btn onClick={startLive} disabled={busy||!previewStream} style={{width:"100%",background:"linear-gradient(135deg,#E11D48,#FF4D6D)",color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}><Icon name="live" size={16} color="#fff"/> Live Shuru Karein</Btn>
     </div>
   );
@@ -776,8 +784,8 @@ function LiveDetailView({post,posts,user,onBack,fireBurst,notify,onCloseLive,ref
       await db.respondCohostRequest(incomingInvite.id,true);
       const hostPost=posts.find(p=>p.userId===incomingInvite.hostId&&p.isLive);
       setIncomingInvite(null);
-      if(hostPost) onJoinCohost(hostPost); else notify("Host ki live nahi mili");
-    }catch(e){ notify("Accept nahi ho saka"); }
+      if(hostPost) onJoinCohost(hostPost); else notify("Could not find host's live stream");
+    }catch(e){ notify("Could not accept"); }
   }
   async function rejectInvite(){
     if(!incomingInvite) return;
@@ -787,9 +795,9 @@ function LiveDetailView({post,posts,user,onBack,fireBurst,notify,onCloseLive,ref
   async function inviteUser(targetUserId){
     try{
       await db.sendCohostRequest(post.roomName,user.userId,targetUserId);
-      notify("Invite bhej di");
+      notify("Invite sent");
       setShowInvite(false);
-    }catch(e){ notify("Invite nahi bhej saka"); }
+    }catch(e){ notify("Could not send invite"); }
   }
 
   useEffect(()=>{
@@ -798,7 +806,7 @@ function LiveDetailView({post,posts,user,onBack,fireBurst,notify,onCloseLive,ref
     const canPublish=isHost||amCohost;
     (async()=>{
       try{
-        if(!LIVEKIT_URL){ notify("LiveKit URL set nahi hai (VITE_LIVEKIT_URL env var add karein)"); return; }
+        if(!LIVEKIT_URL){ notify("LiveKit URL not set (please add VITE_LIVEKIT_URL env var)"); return; }
         const token=await fetchLiveKitToken({room:post.roomName,identity:user.userId,name:user.username,canPublish});
         room=new Room();
         roomRef.current=room;
@@ -839,7 +847,7 @@ room.on(RoomEvent.ParticipantConnected,(p)=>{ setParticipants(prev=>new Set(prev
   async function sendChat(){
     if(!text.trim())return;
     try{ await db.addComment(post.postId,user.userId,text.trim()); setText(""); }
-    catch(e){ notify("Message nahi bheja ja saka"); }
+    catch(e){ notify("Could not send message"); }
   }
   async function closeLive(){
     roomRef.current?.disconnect();
@@ -851,7 +859,7 @@ room.on(RoomEvent.ParticipantConnected,(p)=>{ setParticipants(prev=>new Set(prev
       const newBal=await db.sendGift({fromId:user.userId,toId:live.userId,postId:post.postId,gift});
       fireBurst({emoji:gift.emoji,name:gift.name,from:user.username,file:gift.file}); setShowGift(false);
       window.dispatchEvent(new CustomEvent("lehar:balance",{detail:newBal}));
-    }catch(e){ notify(e?.message==="INSUFFICIENT_COINS"?"Coins kam hain":"Gift nahi bheja ja saka"); }
+    }catch(e){ notify(e?.message==="INSUFFICIENT_COINS"?"Not enough coins":"Could not send gift"); }
   }
   const viewers=new Set(comments.map(c=>c.userId)).size+1;
   const hasGuest=[...participants].some(id=>id!==post.userId);
@@ -866,7 +874,7 @@ room.on(RoomEvent.ParticipantConnected,(p)=>{ setParticipants(prev=>new Set(prev
         <div style={{position:"absolute",top:12,right:12,display:"flex",gap:8,zIndex:5}}>
           <div style={{background:"rgba(0,0,0,.4)",borderRadius:999,padding:"5px 10px",color:"#fff",fontSize:12,display:"flex",alignItems:"center",gap:5}}><Icon name="eye" size={13} color="#fff"/> {viewers}</div>
           {isHost&&!cohostInfo&&<button onClick={()=>setShowInvite(true)} style={{background:"#7C3AED",border:"none",borderRadius:999,padding:"5px 12px",color:"#fff",fontSize:11,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",gap:4}}><Icon name="plus" size={12}/> Co-Host</button>}
-          {isHost&&<button onClick={closeLive} style={{background:"#E11D48",border:"none",borderRadius:999,padding:"5px 12px",color:"#fff",fontSize:11,fontWeight:700,cursor:"pointer"}}>Live Khatam</button>}
+          {isHost&&<button onClick={closeLive} style={{background:"#E11D48",border:"none",borderRadius:999,padding:"5px 12px",color:"#fff",fontSize:11,fontWeight:700,cursor:"pointer"}}>End Live</button>}
         </div>
 
 <div style={{width:"100%",height:"100%",display:"flex",flexDirection:hasGuest?"column":undefined}}>
@@ -878,7 +886,7 @@ room.on(RoomEvent.ParticipantConnected,(p)=>{ setParticipants(prev=>new Set(prev
         {!connected&&(
           <div style={{position:"absolute",inset:0,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",background:"linear-gradient(180deg,#1A0E22,#120A22)"}}>
             <div style={{marginBottom:8,display:"flex",justifyContent:"center"}}><Icon name="live" size={44} color="#FF4D6D"/></div>
-            <Avatar name={live.username} size={64} live/>
+            <Avatar name={live.username} size={64} live pic={live.author?.profilePic}/>
             <p style={{marginTop:12,color:"#9B8FC0",fontSize:13}}>Stream se connect ho raha hai...</p>
           </div>
         )}
@@ -890,7 +898,7 @@ room.on(RoomEvent.ParticipantConnected,(p)=>{ setParticipants(prev=>new Set(prev
 
         {incomingInvite&&(
           <div style={{position:"absolute",top:60,left:12,right:12,background:"#1C1233",border:"1px solid #7c3aed",borderRadius:14,padding:12,zIndex:6}}>
-            <p style={{color:"#F4EEFF",fontSize:13,margin:"0 0 8px"}}>Kisi ne aapko co-host banne ki request bheji hai</p>
+            <p style={{color:"#F4EEFF",fontSize:13,margin:"0 0 8px"}}>Someone has invited you to co-host</p>
             <div style={{display:"flex",gap:8}}>
               <Btn onClick={acceptInvite} style={{flex:1,padding:"7px",fontSize:12}}>Accept</Btn>
               <Btn onClick={rejectInvite} ghost style={{flex:1,padding:"7px",fontSize:12}}>Reject</Btn>
@@ -901,15 +909,15 @@ room.on(RoomEvent.ParticipantConnected,(p)=>{ setParticipants(prev=>new Set(prev
         {showInvite&&(
           <div style={{position:"absolute",inset:0,background:"rgba(0,0,0,.7)",zIndex:7,display:"flex",alignItems:"center",justifyContent:"center",padding:20}} onClick={()=>setShowInvite(false)}>
             <div style={{background:"#1C1233",border:"1px solid #2E1F4D",borderRadius:16,padding:16,width:"100%",maxWidth:320}} onClick={e=>e.stopPropagation()}>
-              <p style={{color:"#F4EEFF",fontWeight:700,margin:"0 0 10px"}}>Kisko invite karna hai?</p>
-              {otherLiveUsers.length===0&&<p style={{color:"#9B8FC0",fontSize:13}}>Abhi koi aur live nahi hai</p>}
+              <p style={{color:"#F4EEFF",fontWeight:700,margin:"0 0 10px"}}>Who do you want to invite?</p>
+              {otherLiveUsers.length===0&&<p style={{color:"#9B8FC0",fontSize:13}}>No one else is live right now</p>}
               {otherLiveUsers.map(p=>(
                 <button key={p.postId} onClick={()=>inviteUser(p.userId)} style={{display:"flex",alignItems:"center",gap:8,width:"100%",padding:8,background:"#120A22",border:"1px solid #2E1F4D",borderRadius:10,marginBottom:6,cursor:"pointer"}}>
-                  <Avatar name={p.username} size={28} live/>
+                  <Avatar name={p.username} size={28} live pic={p.author?.profilePic}/>
                   <span style={{color:"#F4EEFF",fontSize:13}}>{p.username}</span>
                 </button>
               ))}
-              <Btn ghost onClick={()=>setShowInvite(false)} style={{width:"100%",marginTop:4}}>Band Karein</Btn>
+              <Btn ghost onClick={()=>setShowInvite(false)} style={{width:"100%",marginTop:4}}>Close</Btn>
             </div>
             </div>
         )}
@@ -923,7 +931,7 @@ room.on(RoomEvent.ParticipantConnected,(p)=>{ setParticipants(prev=>new Set(prev
           ))}
         </div>
         <div style={{display:"flex",gap:6,padding:8,borderTop:"1px solid #2E1F4D"}}>
-          <input value={text} onChange={e=>setText(e.target.value)} onKeyDown={e=>e.key==="Enter"&&sendChat()} placeholder="Message likhein..." style={{flex:1,background:"#120A22",border:"1px solid #2E1F4D",borderRadius:999,padding:"7px 12px",color:"#F4EEFF",fontSize:13,outline:"none"}}/>
+          <input value={text} onChange={e=>setText(e.target.value)} onKeyDown={e=>e.key==="Enter"&&sendChat()} placeholder="Type a message..." style={{flex:1,background:"#120A22",border:"1px solid #2E1F4D",borderRadius:999,padding:"7px 12px",color:"#F4EEFF",fontSize:13,outline:"none"}}/>
           <button onClick={()=>setShowGift(true)} style={{background:"#FFD166",border:"none",borderRadius:"50%",width:34,height:34,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}><Icon name="gift" size={16} color="#120A22"/></button>
           <button onClick={sendChat} style={{background:"#2E1F4D",border:"none",borderRadius:"50%",width:34,height:34,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}><Icon name="send" size={15}/></button>
         </div>
@@ -944,7 +952,7 @@ function LiveFeedView({posts,user,onOpenLive,onStartLive}){
         <button onClick={onStartLive} style={{display:"inline-flex",alignItems:"center",gap:8,background:"linear-gradient(135deg,#E11D48,#FF4D6D)",color:"#fff",border:"none",borderRadius:999,padding:"13px 28px",fontWeight:700,fontSize:14.5,cursor:"pointer",boxShadow:"0 10px 24px rgba(197,57,44,.3)"}}>
           <Icon name="live" size={16} color="#fff"/> Abhi Live Jayen
         </button>
-        <p style={{color:"#9B8FC0",fontSize:12.5,marginTop:12}}>Apni live stream shuru karein aur gifts payen</p>
+        <p style={{color:"#9B8FC0",fontSize:12.5,marginTop:12}}>Start your live stream and receive gifts</p>
       </div>
     </div>
   );
@@ -953,8 +961,8 @@ function LiveFeedView({posts,user,onOpenLive,onStartLive}){
       <GoLiveBar/>
       <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",color:"#9B8FC0",padding:"20px 30px"}}>
         <Icon name="clock" size={38} color="#3A2A5C"/>
-        <p style={{fontFamily:"'Sora',sans-serif",fontWeight:700,color:"#F4EEFF",fontSize:15,marginTop:14,marginBottom:4}}>Abhi koi live nahi</p>
-        <p style={{fontSize:12.5,color:"#9B8FC0",textAlign:"center"}}>Pehle aap live ho jayen!</p>
+        <p style={{fontFamily:"'Sora',sans-serif",fontWeight:700,color:"#F4EEFF",fontSize:15,marginTop:14,marginBottom:4}}>No one is live right now</p>
+        <p style={{fontSize:12.5,color:"#9B8FC0",textAlign:"center"}}>Be the first to go live!</p>
       </div>
     </div>
   );
@@ -967,9 +975,9 @@ function LiveFeedView({posts,user,onOpenLive,onStartLive}){
             <span style={{position:"absolute",top:10,left:10,background:"#E11D48",color:"#fff",fontSize:9,fontWeight:800,padding:"3px 7px",borderRadius:999,display:"flex",alignItems:"center",gap:3,letterSpacing:"0.03em"}}>
               <span style={{width:5,height:5,borderRadius:"50%",background:"#fff",display:"inline-block"}}/> LIVE
             </span>
-            <Avatar name={p.username} size={56} live/>
+            <Avatar name={p.username} size={56} live pic={p.author?.profilePic}/>
             <p style={{fontWeight:700,color:"#F4EEFF",fontSize:13,margin:0,fontFamily:"'Sora',sans-serif"}}>{p.username}</p>
-            <span style={{background:"rgba(168,85,247,0.14)",color:"#F472B6",fontSize:10.5,padding:"4px 10px",borderRadius:999,fontWeight:700}}>Join Karein</span>
+            <span style={{background:"rgba(168,85,247,0.14)",color:"#F472B6",fontSize:10.5,padding:"4px 10px",borderRadius:999,fontWeight:700}}>Join</span>
           </button>
         ))}
       </div>
@@ -993,15 +1001,15 @@ function SearchView({user,notify,onOpenChat}){
     try{
       const r=await db.sendFriendRequest(user.userId,target.userId);
       setSentIds(prev=>({...prev,[target.userId]:true}));
-      notify(r.already?"Request pehle se bhej di":`${target.username} ko request bhej di`);
-    }catch(e){ notify("Request nahi bhej saka"); }
+      notify(r.already?"Request already sent":`${target.username} ko request bhej di`);
+    }catch(e){ notify("Could not send request"); }
   }
   const show=results.length>0?results:suggested;
   const inp={flex:1,background:"#1C1233",border:"1px solid #2E1F4D",borderRadius:12,padding:"10px 14px",color:"#F4EEFF",fontSize:13,outline:"none"};
   return (
     <div style={{padding:14}}>
       <div style={{display:"flex",gap:8,marginBottom:14}}>
-        <input value={query} onChange={e=>setQuery(e.target.value)} onKeyDown={e=>e.key==="Enter"&&doSearch()} placeholder="Username se dhoondein..." style={inp}/>
+        <input value={query} onChange={e=>setQuery(e.target.value)} onKeyDown={e=>e.key==="Enter"&&doSearch()} placeholder="Search by username..." style={inp}/>
         <button onClick={doSearch} style={{background:"#FFD166",border:"none",borderRadius:12,padding:"0 14px",cursor:"pointer",display:"flex",alignItems:"center",color:"#221705"}}><Icon name="search" size={17} color="#221705" strokeWidth={2}/></button>
       </div>
       <div style={{display:"flex",flexDirection:"column",gap:8}}>
@@ -1016,7 +1024,7 @@ function SearchView({user,notify,onOpenChat}){
             <button onClick={()=>sendFriendReq(u)} disabled={sentIds[u.userId]} style={{background:"rgba(168,85,247,.2)",border:"none",borderRadius:"50%",width:32,height:32,cursor:sentIds[u.userId]?"default":"pointer",fontSize:14,opacity:sentIds[u.userId]?0.4:1}}>{sentIds[u.userId]?<Icon name="check" size={13}/>:<Icon name="plus" size={13}/>}</button>
           </div>
         ))}
-        {show.length===0&&<p style={{color:"#9B8FC0",fontSize:13,textAlign:"center",padding:"24px 0"}}>Koi user nahi mila</p>}
+        {show.length===0&&<p style={{color:"#9B8FC0",fontSize:13,textAlign:"center",padding:"24px 0"}}>No users found</p>}
       </div>
     </div>
   );
@@ -1039,9 +1047,9 @@ function InboxView({user,onOpenChat,notify,notifications}){
   async function respond(req,accept){
     try{
       await db.respondFriendRequest(req.id,req.fromId,user.userId,accept);
-      notify(accept?`${req.fromUsername} ko friend add kar liya`:"Request reject kar di");
+      notify(accept?`${req.fromUsername} ko friend add kar liya`:"Request rejected");
       load();
-    }catch(e){ notify("Kuch ghalat ho gaya"); }
+    }catch(e){ notify("Something went wrong"); }
   }
 
   return (
@@ -1053,7 +1061,7 @@ function InboxView({user,onOpenChat,notify,notifications}){
       </div>
       <div style={{flex:1,overflowY:"auto",padding:"0 14px 14px"}}>
         {tab==="msgs"&&(
-          convs.length===0?<p style={{color:"#9B8FC0",fontSize:13,textAlign:"center",padding:"40px 0"}}>Koi message nahi</p>:
+          convs.length===0?<p style={{color:"#9B8FC0",fontSize:13,textAlign:"center",padding:"40px 0"}}>No messages</p>:
           convs.map(c=>(
             <button key={c.partnerId} onClick={()=>onOpenChat({partnerId:c.partnerId,partnerUsername:c.partnerUsername})} style={{display:"flex",alignItems:"center",gap:10,width:"100%",padding:10,background:"#1C1233",borderRadius:14,marginBottom:8,border:"none",cursor:"pointer",textAlign:"left"}}>
               <Avatar name={c.partnerUsername} size={40} pic={c.partnerProfilePic}/>
@@ -1066,7 +1074,7 @@ function InboxView({user,onOpenChat,notify,notifications}){
           ))
         )}
         {tab==="requests"&&(
-          requests.length===0?<p style={{color:"#9B8FC0",fontSize:13,textAlign:"center",padding:"40px 0"}}>Koi request nahi</p>:
+          requests.length===0?<p style={{color:"#9B8FC0",fontSize:13,textAlign:"center",padding:"40px 0"}}>No requests</p>:
           requests.map(r=>(
             <div key={r.id} style={{display:"flex",alignItems:"center",gap:10,padding:10,background:"#1C1233",borderRadius:14,marginBottom:8}}>
               <Avatar name={r.fromUsername} size={38} pic={r.profilePic} verified={r.verified}/>
@@ -1077,7 +1085,7 @@ function InboxView({user,onOpenChat,notify,notifications}){
           ))
         )}
         {tab==="friends"&&(
-          friends.length===0?<p style={{color:"#9B8FC0",fontSize:13,textAlign:"center",padding:"40px 0"}}>Abhi koi friend nahi</p>:
+          friends.length===0?<p style={{color:"#9B8FC0",fontSize:13,textAlign:"center",padding:"40px 0"}}>No friends yet</p>:
           friends.map(f=>(
             <button key={f.userId} onClick={()=>onOpenChat({partnerId:f.userId,partnerUsername:f.username})} style={{display:"flex",alignItems:"center",gap:10,width:"100%",padding:10,background:"#1C1233",borderRadius:14,marginBottom:8,border:"none",cursor:"pointer",textAlign:"left"}}>
               <Avatar name={f.username} size={38} pic={f.profilePic} verified={f.verified}/>
@@ -1114,7 +1122,7 @@ function ChatView({user,partner,onBack}){
         <p style={{fontWeight:700,color:"#F4EEFF",fontSize:14,margin:0}}>{partner.partnerUsername}</p>
       </div>
       <div ref={chatRef} style={{flex:1,overflowY:"auto",padding:"12px 14px",display:"flex",flexDirection:"column",gap:6}}>
-        {msgs.length===0&&<p style={{color:"#9B8FC0",fontSize:13,textAlign:"center",padding:"24px 0"}}>Koi message nahi — pehle aap karein!</p>}
+        {msgs.length===0&&<p style={{color:"#9B8FC0",fontSize:13,textAlign:"center",padding:"24px 0"}}>No messages — start the conversation!</p>}
         {msgs.map(m=>(
           <div key={m.id} style={{display:"flex",justifyContent:m.fromId===user.userId?"flex-end":"flex-start"}}>
             <div style={{maxWidth:"75%",padding:"8px 12px",borderRadius:16,fontSize:13,background:m.fromId===user.userId?"#FFD166":"#1C1233",color:m.fromId===user.userId?"#120A22":"#F4EEFF"}}>
@@ -1124,7 +1132,7 @@ function ChatView({user,partner,onBack}){
         ))}
       </div>
       <div style={{display:"flex",gap:8,padding:10,borderTop:"1px solid #2E1F4D"}}>
-        <input value={text} onChange={e=>setText(e.target.value)} onKeyDown={e=>e.key==="Enter"&&sendMsg()} placeholder="Message likhein..." style={{flex:1,background:"#1C1233",border:"1px solid #2E1F4D",borderRadius:999,padding:"8px 14px",color:"#F4EEFF",fontSize:13,outline:"none"}}/>
+        <input value={text} onChange={e=>setText(e.target.value)} onKeyDown={e=>e.key==="Enter"&&sendMsg()} placeholder="Type a message..." style={{flex:1,background:"#1C1233",border:"1px solid #2E1F4D",borderRadius:999,padding:"8px 14px",color:"#F4EEFF",fontSize:13,outline:"none"}}/>
         <button onClick={sendMsg} style={{background:"#FFD166",border:"none",borderRadius:"50%",width:36,height:36,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}><Icon name="send" size={16} color="#120A22"/></button>
       </div>
     </div>
@@ -1149,21 +1157,21 @@ function WalletView({user,notify,onRefreshUser}){
     setBusy(true);
     try{
       await db.createTransaction({userId:user.userId,type:"topup",amountPKR:pkr,coins:Math.floor(pkr*TOPUP_COINS_PER_PKR),method,reference:reference.trim()});
-      setAmount(""); setReference(""); notify("Request bhej di — admin approval ka intezaar karein"); load();
-    }catch(e){ notify("Request nahi bhej saka"); } finally { setBusy(false); }
+      setAmount(""); setReference(""); notify("Request sent — waiting for admin approval"); load();
+    }catch(e){ notify("Could not send request"); } finally { setBusy(false); }
   }
   async function submitWithdraw(){
     const coins=parseInt(withdrawCoins,10);
-    if(!coins||coins<=0){notify("Sahi coins likhein");return;}
-    if(coins>user.coinBalance){notify("Itne coins aapke paas nahi");return;}
-    if(!withdrawNumber.trim()){notify("Number likhein");return;}
+    if(!coins||coins<=0){notify("Please enter a valid number of coins");return;}
+    if(coins>user.coinBalance){notify("You don't have that many coins");return;}
+    if(!withdrawNumber.trim()){notify("Enter number");return;}
     setBusy(true);
     try{
       await db.requestWithdraw({userId:user.userId,coins,method,reference:withdrawNumber.trim()});
       onRefreshUser(user.coinBalance-coins);
       setWithdrawCoins(""); setWithdrawNumber(""); notify("Withdraw request bhej di"); load();
     }catch(e){
-      notify(e?.message==="INSUFFICIENT_COINS"?"Itne coins aapke paas nahi":"Request nahi bhej saka");
+      notify(e?.message==="INSUFFICIENT_COINS"?"You don't have that many coins":"Could not send request");
     } finally { setBusy(false); }
   }
   const inp={width:"100%",background:"#1C1233",border:"1px solid #2E1F4D",borderRadius:12,padding:"10px 14px",color:"#F4EEFF",fontSize:13,outline:"none",boxSizing:"border-box"};
@@ -1178,7 +1186,7 @@ function WalletView({user,notify,onRefreshUser}){
         Buy: Rs.20 = 1 coin (min Rs.3,000) | Cash Out: 1 coin = Rs.12
       </div>
       <div style={{display:"flex",background:"#1C1233",borderRadius:12,padding:4,marginBottom:12,gap:4}}>
-        {["buy","withdraw"].map(t=><button key={t} onClick={()=>setTab(t)} style={{flex:1,padding:8,borderRadius:8,border:"none",fontWeight:700,fontSize:12,background:tab===t?"#F4EEFF":"transparent",color:tab===t?"#120A22":"#9B8FC0",cursor:"pointer"}}>{t==="buy"?"Coins Khareedein":"Cash Out"}</button>)}
+        {["buy","withdraw"].map(t=><button key={t} onClick={()=>setTab(t)} style={{flex:1,padding:8,borderRadius:8,border:"none",fontWeight:700,fontSize:12,background:tab===t?"#F4EEFF":"transparent",color:tab===t?"#120A22":"#9B8FC0",cursor:"pointer"}}>{t==="buy"?"Buy Coins":"Cash Out"}</button>)}
       </div>
       {tab==="buy"?(
         <div style={{display:"flex",flexDirection:"column",gap:10}}>
@@ -1189,19 +1197,19 @@ function WalletView({user,notify,onRefreshUser}){
             <p style={{color:"#9B8FC0",fontSize:11,margin:"0 0 4px"}}>Is number par payment bhejein:</p>
             <p style={{fontFamily:"monospace",fontSize:18,fontWeight:900,color:"#F4EEFF",margin:0}}>{OWNER_PAYMENT[method]}</p>
           </div>
-          <input value={amount} onChange={e=>setAmount(e.target.value)} type="number" placeholder="Aap ne kitne Rs. bheje?" style={inp}/>
+          <input value={amount} onChange={e=>setAmount(e.target.value)} type="number" placeholder="How much did you send (Rs.)?" style={inp}/>
           {amount&&!isNaN(amount)&&<p style={{color:"#FFD166",fontSize:12,fontFamily:"monospace"}}>≈ {Math.floor(parseFloat(amount)*TOPUP_COINS_PER_PKR)} coins milengi</p>}
           <input value={reference} onChange={e=>setReference(e.target.value)} placeholder="Transaction ID / reference (optional)" style={inp}/>
           <Btn onClick={submitTopup} disabled={busy} style={{width:"100%"}}>Maine Payment Bhej Diya</Btn>
         </div>
       ):(
         <div style={{display:"flex",flexDirection:"column",gap:10}}>
-          <input value={withdrawCoins} onChange={e=>setWithdrawCoins(e.target.value)} type="number" placeholder="Kitne coins nikalwane hain?" style={inp}/>
+          <input value={withdrawCoins} onChange={e=>setWithdrawCoins(e.target.value)} type="number" placeholder="How many coins to withdraw?" style={inp}/>
           {withdrawCoins&&!isNaN(withdrawCoins)&&<p style={{color:"#FFD166",fontSize:12,fontFamily:"monospace"}}>≈ Rs. {(parseInt(withdrawCoins,10)/WITHDRAW_COINS_PER_PKR).toFixed(0)} milenge</p>}
           <div style={{display:"flex",gap:6}}>
             {Object.keys(OWNER_PAYMENT).map(m=><button key={m} onClick={()=>setMethod(m)} style={{flex:1,padding:"8px 4px",borderRadius:10,border:`1px solid ${method===m?"#FFD166":"#2E1F4D"}`,background:"none",color:method===m?"#FFD166":"#9B8FC0",fontWeight:700,fontSize:11,cursor:"pointer"}}>{m}</button>)}
           </div>
-          <input value={withdrawNumber} onChange={e=>setWithdrawNumber(e.target.value)} placeholder="Aap ka account number" style={inp}/>
+          <input value={withdrawNumber} onChange={e=>setWithdrawNumber(e.target.value)} placeholder="Your account number" style={inp}/>
           <Btn onClick={submitWithdraw} disabled={busy} style={{width:"100%"}}>Cash Out Request</Btn>
         </div>
       )}
@@ -1240,31 +1248,31 @@ function ProfileView({user,onLogout,onGoWallet,notify,onUserUpdate}){
   useEffect(()=>{ loadPosts(); },[loadPosts]);
 
   async function saveBio(){
-    try{ await db.updateProfile(user.userId,{bio}); onUserUpdate({...user,bio}); setEditing(false); notify("Profile update ho gayi"); }
-    catch(e){ notify("Update nahi ho saka"); }
+    try{ await db.updateProfile(user.userId,{bio}); onUserUpdate({...user,bio}); setEditing(false); notify("Profile updated"); }
+    catch(e){ notify("Could not update"); }
   }
   async function changePassword(){
-    if(newPass.length<6){notify("Password kam az kam 6 huroof ka ho");return;}
-    try{ await db.changePassword(newPass); setNewPass(""); notify("Password badal gaya"); }
-    catch(e){ notify("Password badal nahi saka"); }
+    if(newPass.length<6){notify("Password must be at least 6 characters");return;}
+    try{ await db.changePassword(newPass); setNewPass(""); notify("Password changed"); }
+    catch(e){ notify("Could not change password"); }
   }
   async function onAvatarChange(e){
     const f=e.target.files?.[0]; if(!f)return;
-    if(!f.type.startsWith("image")){notify("Sirf image upload karein");return;}
-    if(f.size>10*1024*1024){notify("Image 10MB se choti honi chahiye");return;}
+    if(!f.type.startsWith("image")){notify("Please upload an image only");return;}
+    if(f.size>10*1024*1024){notify("Image must be smaller than 10MB");return;}
     setUploadingAvatar(true);
     try{
       const url=await db.uploadAvatar(f,user.userId);
       await db.updateProfile(user.userId,{profilePic:url});
       onUserUpdate({...user,profilePic:url});
-      notify("Profile picture update ho gayi");
+      notify("Profile picture updated");
     }catch(e){
-      notify("Profile pic upload nahi ho saki — dobara koshish karein");
+      notify("Profile picture upload failed — please try again");
     } finally { setUploadingAvatar(false); }
   }
   async function handleDelete(post){
-    try{ await db.deletePost(post.postId); setConfirmDelete(null); loadPosts(); notify("Post delete ho gayi"); }
-    catch(e){ notify("Delete nahi ho saka"); }
+    try{ await db.deletePost(post.postId); setConfirmDelete(null); loadPosts(); notify("Post deleted"); }
+    catch(e){ notify("Could not delete"); }
   }
 
   const myMediaPosts=myPosts.filter(p=>!p.isReel);
@@ -1281,17 +1289,17 @@ function ProfileView({user,onLogout,onGoWallet,notify,onUserUpdate}){
         </div>
         <div style={{flex:1}}>
           <p style={{fontWeight:800,color:"#F4EEFF",fontSize:17,margin:0,display:"flex",alignItems:"center",gap:5}}>{user.username}{user.verified&&<Icon name="verified" size={15} color="#A855F7" fill="#A855F7" strokeWidth={0}/>}</p>
-          {!editing&&<p style={{color:"#9B8FC0",fontSize:12,margin:"3px 0 0"}}>{user.bio||"Bio nahi hai"}</p>}
+          {!editing&&<p style={{color:"#9B8FC0",fontSize:12,margin:"3px 0 0"}}>{user.bio||"No bio yet"}</p>}
         </div>
         <button onClick={()=>setEditing(v=>!v)} style={{background:"none",border:"none",color:"#9B8FC0",cursor:"pointer",display:"flex"}}><Icon name="edit" size={17}/></button>
       </div>
 
       {editing&&(
         <div style={{background:"#1C1233",border:"1px solid #2E1F4D",borderRadius:14,padding:12,marginBottom:14}}>
-          <textarea value={bio} onChange={e=>setBio(e.target.value)} placeholder="Bio likhein..." rows={2} style={{...inp,marginBottom:8,resize:"none"}}/>
-          <Btn onClick={saveBio} style={{width:"100%",padding:"8px",marginBottom:10}}>Bio Save Karein</Btn>
-          <input value={newPass} onChange={e=>setNewPass(e.target.value)} type="password" placeholder="Naya password" style={{...inp,marginBottom:8}}/>
-          <Btn onClick={changePassword} style={{width:"100%",padding:"9px",display:"flex",alignItems:"center",justifyContent:"center",gap:7}}><Icon name="lock" size={15} color="currentColor"/> Password Badlein</Btn>
+          <textarea value={bio} onChange={e=>setBio(e.target.value)} placeholder="Write a bio..." rows={2} style={{...inp,marginBottom:8,resize:"none"}}/>
+          <Btn onClick={saveBio} style={{width:"100%",padding:"8px",marginBottom:10}}>Save Bio</Btn>
+          <input value={newPass} onChange={e=>setNewPass(e.target.value)} type="password" placeholder="New password" style={{...inp,marginBottom:8}}/>
+          <Btn onClick={changePassword} style={{width:"100%",padding:"9px",display:"flex",alignItems:"center",justifyContent:"center",gap:7}}><Icon name="lock" size={15} color="currentColor"/> Change Password</Btn>
         </div>
       )}
 
@@ -1318,13 +1326,13 @@ function ProfileView({user,onLogout,onGoWallet,notify,onUserUpdate}){
             <button onClick={(e)=>{e.stopPropagation();setConfirmDelete(p);}} style={{position:"absolute",top:2,left:2,background:"rgba(0,0,0,.6)",border:"none",borderRadius:6,width:20,height:20,color:"#fff",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}><Icon name="trash" size={11}/></button>
           </button>
         ))}
-        {myPosts.length===0&&<p style={{gridColumn:"1/-1",textAlign:"center",color:"#9B8FC0",fontSize:12,padding:"20px 0"}}>Koi post nahi</p>}
+        {myPosts.length===0&&<p style={{gridColumn:"1/-1",textAlign:"center",color:"#9B8FC0",fontSize:12,padding:"20px 0"}}>No posts</p>}
       </div>
 
       <Btn onClick={onLogout} ghost style={{width:"100%",padding:"9px",marginTop:18,display:"flex",alignItems:"center",justifyContent:"center",gap:7}}><Icon name="logout" size={15}/> Logout</Btn>
 
       {mediaPost&&<MediaViewerModal post={mediaPost} onClose={()=>setMediaPost(null)}/>}
-      {confirmDelete&&<ConfirmDialog title="Post delete karein?" message="Ye post hamesha ke liye delete ho jayegi." onConfirm={()=>handleDelete(confirmDelete)} onCancel={()=>setConfirmDelete(null)}/>}
+      {confirmDelete&&<ConfirmDialog title="Delete this post?" message="This post will be permanently deleted." onConfirm={()=>handleDelete(confirmDelete)} onCancel={()=>setConfirmDelete(null)}/>}
     </div>
   );
 }
@@ -1335,10 +1343,10 @@ function AdminPanel({onExit,notify}){
   const load=useCallback(async()=>{ setTxs(await db.getAllTransactions()); },[]);
   useEffect(()=>{ load(); const t=setInterval(load,4000); return ()=>clearInterval(t); },[load]);
 
-  async function approveTopup(tx){ try{ await db.adminApproveTopup(tx.id); load(); }catch(e){ notify("Approve nahi ho saka"); } }
-  async function rejectTopup(tx){ try{ await db.adminRejectTopup(tx.id); load(); }catch(e){ notify("Reject nahi ho saka"); } }
-  async function markWithdrawPaid(tx){ try{ await db.adminApproveWithdraw(tx.id); load(); }catch(e){ notify("Update nahi ho saka"); } }
-  async function rejectWithdraw(tx){ try{ await db.adminRejectWithdraw(tx.id); load(); }catch(e){ notify("Reject nahi ho saka"); } }
+  async function approveTopup(tx){ try{ await db.adminApproveTopup(tx.id); load(); }catch(e){ notify("Could not approve"); } }
+  async function rejectTopup(tx){ try{ await db.adminRejectTopup(tx.id); load(); }catch(e){ notify("Could not reject"); } }
+  async function markWithdrawPaid(tx){ try{ await db.adminApproveWithdraw(tx.id); load(); }catch(e){ notify("Could not update"); } }
+  async function rejectWithdraw(tx){ try{ await db.adminRejectWithdraw(tx.id); load(); }catch(e){ notify("Could not reject"); } }
 
   const pending=txs.filter(t=>t.status==="pending");
   const totalIn=txs.filter(t=>t.type==="topup"&&t.status==="approved").reduce((s,t)=>s+Number(t.amountPKR),0);
@@ -1350,7 +1358,7 @@ function AdminPanel({onExit,notify}){
         <button onClick={onExit} style={{color:"#9B8FC0",background:"none",border:"none",cursor:"pointer",fontSize:13}}>Exit</button>
       </div>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:16}}>
-        {[["Total Wasool","Rs."+totalIn.toFixed(0),"#F472B6"],["Total Pay-out","Rs."+totalOut.toFixed(0),"#FF8FA3"]].map(([l,v,c])=>(
+        {[["Total Received","Rs."+totalIn.toFixed(0),"#F472B6"],["Total Pay-out","Rs."+totalOut.toFixed(0),"#FF8FA3"]].map(([l,v,c])=>(
           <div key={l} style={{background:"#1C1233",border:"1px solid #2E1F4D",borderRadius:12,padding:12}}>
             <p style={{color:"#9B8FC0",fontSize:11,margin:0}}>{l}</p>
             <p style={{fontFamily:"monospace",fontSize:18,fontWeight:900,color:c,margin:0}}>{v}</p>
@@ -1362,7 +1370,7 @@ function AdminPanel({onExit,notify}){
         </div>
       </div>
       <h3 style={{color:"#F4EEFF",margin:"0 0 8px",fontWeight:700}}>Pending ({pending.length})</h3>
-      {pending.length===0&&<p style={{color:"#9B8FC0",fontSize:13}}>Koi pending request nahi</p>}
+      {pending.length===0&&<p style={{color:"#9B8FC0",fontSize:13}}>No pending requests</p>}
       {pending.map(t=>(
         <div key={t.id} style={{background:"#1C1233",border:"1px solid #2E1F4D",borderRadius:12,padding:12,marginBottom:10}}>
           <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
@@ -1476,7 +1484,7 @@ const fireBurst=useCallback((b)=>{ setBurst({...b,key:Date.now()}); setTimeout((
   }
 
   if(session===undefined||(session&&!user)){
-    return <div style={{minHeight:"100vh",background:"#120A22",display:"flex",alignItems:"center",justifyContent:"center",color:"#9B8FC0"}}>Load ho raha hai...</div>;
+    return <div style={{minHeight:"100vh",background:"#120A22",display:"flex",alignItems:"center",justifyContent:"center",color:"#9B8FC0"}}>Loading...</div>;
   }
   if(!user){
     return (
@@ -1542,7 +1550,7 @@ const fireBurst=useCallback((b)=>{ setBurst({...b,key:Date.now()}); setTimeout((
 
       {notifOpen&&(
         <div style={{position:"fixed",top:56,right:14,zIndex:40,background:"#1C1233",border:"1px solid #2E1F4D",borderRadius:14,width:260,maxHeight:320,overflowY:"auto",boxShadow:"0 8px 30px rgba(0,0,0,.5)"}}>
-          {notifications.length===0&&<p style={{color:"#9B8FC0",fontSize:12,padding:14,margin:0}}>Koi notification nahi</p>}
+          {notifications.length===0&&<p style={{color:"#9B8FC0",fontSize:12,padding:14,margin:0}}>No notifications</p>}
           {notifications.map(n=>(
             <div key={n.id} style={{padding:"10px 14px",borderBottom:"1px solid #2E1F4D",fontSize:12,color:n.read?"#9B8FC0":"#F4EEFF"}}>
               {n.body}
@@ -1561,7 +1569,7 @@ const fireBurst=useCallback((b)=>{ setBurst({...b,key:Date.now()}); setTimeout((
         {tab==="inbox"&&<InboxView user={user} onOpenChat={setChatPartner} notify={notify} notifications={notifications}/>}
         {tab==="profile"&&<ProfileView user={user} onLogout={handleLogout} onGoWallet={()=>setTab("wallet")} notify={notify} onUserUpdate={setUser}/>}
         {tab==="wallet"&&<WalletView user={user} notify={notify} onRefreshUser={(bal)=>setUser(u=>({...u,coinBalance:bal}))}/>}
-        {tab==="create"&&<CreateView user={user} notify={notify} onDone={()=>{ refreshFeed(); setTab("home"); notify("Post ho gaya!"); }}/>}
+        {tab==="create"&&<CreateView user={user} notify={notify} onDone={()=>{ refreshFeed(); setTab("home"); notify("Posted!"); }}/>}
       </div>
 
       <div style={{position:"fixed",bottom:0,left:0,right:0,background:"#120A22",borderTop:"1px solid #1C1233",display:"flex",alignItems:"center",justifyContent:"space-around",padding:"8px 4px calc(8px + env(safe-area-inset-bottom))",zIndex:30}}>
