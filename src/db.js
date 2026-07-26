@@ -330,7 +330,7 @@ export async function createLivePost({ userId, caption, roomName }) {
 export async function endLivePost(postId) {
   const { error } = await supabase.from("posts").delete().eq("post_id", postId);
   if (error) throw error;
-}
+    }
 const { error } = await supabase.from("posts").delete().eq("post_id", postId);
   if (error) throw error;
 }
@@ -657,4 +657,4 @@ export async function respondCohostRequest(requestId, accept) {
     .update({ status: accept ? "accepted" : "declined" })
     .eq("id", requestId);
   if (error) throw error;
-      }
+             }
