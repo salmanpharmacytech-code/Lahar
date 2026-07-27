@@ -824,3 +824,56 @@ export function sendBattleEvent(roomName, payload) {
   const channel = supabase.channel(`battle-${roomName}`);
   channel.send({ type: "broadcast", event: "battle", payload });
 }
+
+// ── Advertisements ─────────────────────────────────────────────────────────────
+export async function submitAdRequest({ userId, imageUrl, linkUrl, caption }) {
+  const { data, error } = await supabase
+    .from("advertisements")
+    .insert({ user_id: userId, image_url: imageUrl, link_url: linkUrl || "", caption: caption || "" })
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+export async function getActiveAds() {
+  const { data, error } = await supabase
+    .from("advertisements")
+    .select("*, profiles:user_id(username)")
+    .eq("status", "approved")
+    .order("created_at", { ascending: false });
+  if (error) return [];
+  return data.map(toAd);
+}
+
+export async function getAllAds() {
+  const { data, error } = await supabase
+    .from("advertisements")
+    .select("*, profiles:user_id(username)")
+    .order("created_at", { ascending: false });
+  if (error) return [];
+  return data.map(toAd);
+}
+
+export async function adminApproveAd(adId) {
+  const { error } = await supabase.from("advertisements").update({ status: "approved" }).eq("ad_id", adId);
+  if (error) throw error;
+}
+
+export async function adminRejectAd(adId) {
+  const { error } = await supabase.from("advertisements").update({ status: "rejected" }).eq("ad_id", adId);
+  if (error) throw error;
+}
+
+function toAd(row) {
+  return {
+    adId: row.ad_id,
+    userId: row.user_id,
+    username: row.profiles?.username,
+    imageUrl: row.image_url,
+    linkUrl: row.link_url,
+    caption: row.caption,
+    status: row.status,
+    createdAt: new Date(row.created_at).getTime(),
+  };
+}
