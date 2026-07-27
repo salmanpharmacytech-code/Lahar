@@ -62,6 +62,7 @@ function toUser(row) {
     profilePic: row.profile_pic || null,
     coinBalance: row.coin_balance || 0,
     verified: row.verified,
+    verifiedUntil: row.verified_until ? new Date(row.verified_until).getTime() : null,
     isAdmin: row.is_admin,
     createdAt: new Date(row.created_at).getTime(),
   };
@@ -81,6 +82,7 @@ function toPost(row) {
     createdAt: new Date(row.created_at).getTime(),
     likes: row.likes || [],
     comments: row.comments || [],
+    viewCount: row.view_count || 0,
     author: row.profiles ? toUser({ ...row.profiles, user_id: row.user_id }) : null,
   };
 }
@@ -654,4 +656,157 @@ export async function respondCohostRequest(requestId, accept) {
     .update({ status: accept ? "accepted" : "declined" })
     .eq("id", requestId);
   if (error) throw error;
+}
+
+// ── Typing indicator (realtime broadcast, no DB table needed) ──────────────
+function typingChannelName(userIdA, userIdB) {
+  return `typing-${[userIdA, userIdB].sort().join("-")}`;
+}
+
+export function sendTypingEvent(userId, partnerId) {
+  const channel = supabase.channel(typingChannelName(userId, partnerId));
+  channel.send({ type: "broadcast", event: "typing", payload: { from: userId } });
+}
+
+export function subscribeToTyping(userId, partnerId, onTyping) {
+  const channel = supabase
+    .channel(typingChannelName(userId, partnerId))
+    .on("broadcast", { event: "typing" }, (msg) => {
+      if (msg.payload?.from && msg.payload.from !== userId) onTyping();
+    })
+    .subscribe();
+  return () => supabase.removeChannel(channel);
+}
+
+// ── View count ────────────────────────────────────────────────────────────────
+export async function incrementViewCount(postId) {
+  const { data } = await supabase.from("posts").select("view_count").eq("post_id", postId).single();
+  const newCount = (data?.view_count || 0) + 1;
+  await supabase.from("posts").update({ view_count: newCount }).eq("post_id", postId);
+}
+
+// ── Online / offline presence (realtime, no DB table) ──────────────────────
+export function subscribeOnlinePresence(userId, onChange) {
+  const channel = supabase.channel("online-users", { config: { presence: { key: userId } } });
+  channel.on("presence", { event: "sync" }, () => {
+    const state = channel.presenceState();
+    onChange(Object.keys(state));
+  });
+  channel.subscribe(async (status) => {
+    if (status === "SUBSCRIBED") await channel.track({ online_at: new Date().toISOString() });
+  });
+  return () => supabase.removeChannel(channel);
+}
+
+// ── Stories / Status ──────────────────────────────────────────────────────────
+export async function createStory({ userId, mediaUrl, mediaType, caption }) {
+  const { data, error } = await supabase
+    .from("stories")
+    .insert({ user_id: userId, media_url: mediaUrl, media_type: mediaType, caption: caption || "" })
+    .select("*, profiles:user_id(username, profile_pic, verified)")
+    .single();
+  if (error) throw error;
+  return toStory(data);
+}
+
+export async function fetchActiveStories() {
+  const { data, error } = await supabase
+    .from("stories")
+    .select("*, profiles:user_id(username, profile_pic, verified)")
+    .gt("expires_at", new Date().toISOString())
+    .order("created_at", { ascending: true });
+  if (error) return [];
+  return data.map(toStory);
+}
+
+export async function deleteStory(storyId) {
+  const { error } = await supabase.from("stories").delete().eq("story_id", storyId);
+  if (error) throw error;
+}
+
+export async function markStoryViewed(storyId, viewerId) {
+  const { error } = await supabase.from("story_views").insert({ story_id: storyId, viewer_id: viewerId });
+  if (error && error.code !== "23505") throw error;
+}
+
+export async function getStoryViewers(storyId) {
+  const { data, error } = await supabase
+    .from("story_views")
+    .select("viewer_id, viewed_at, profiles:viewer_id(username, profile_pic)")
+    .eq("story_id", storyId)
+    .order("viewed_at", { ascending: false });
+  if (error) return [];
+  return data.map((r) => ({ userId: r.viewer_id, username: r.profiles?.username, profilePic: r.profiles?.profile_pic, ts: new Date(r.viewed_at).getTime() }));
+}
+
+function toStory(row) {
+  return {
+    storyId: row.story_id,
+    userId: row.user_id,
+    username: row.profiles?.username,
+    profilePic: row.profiles?.profile_pic,
+    verified: row.profiles?.verified,
+    mediaUrl: row.media_url,
+    mediaType: row.media_type,
+    caption: row.caption || "",
+    createdAt: new Date(row.created_at).getTime(),
+    expiresAt: new Date(row.expires_at).getTime(),
+  };
+}
+
+// ── Verification subscription (monthly paid blue tick) ──────────────────────
+export async function requestVerification({ userId, amountPKR, coins, method, reference }) {
+  const { data, error } = await supabase
+    .from("transactions")
+    .insert({ user_id: userId, type: "verification", amount_pkr: amountPKR, coins: coins || 0, method, reference, status: "pending" })
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+export async function adminApproveVerification(userId, txId) {
+  const verifiedUntil = new Date();
+  verifiedUntil.setDate(verifiedUntil.getDate() + 30);
+  const { error: pErr } = await supabase
+    .from("profiles")
+    .update({ verified: true, verified_until: verifiedUntil.toISOString() })
+    .eq("user_id", userId);
+  if (pErr) throw pErr;
+  const { error: tErr } = await supabase.from("transactions").update({ status: "approved" }).eq("id", txId);
+  if (tErr) throw tErr;
+  await addNotification(userId, "ki verification approve ho gayi hai — 30 din ke liye blue tick mil gaya");
+}
+
+export async function adminRejectVerification(txId) {
+  const { error } = await supabase.from("transactions").update({ status: "rejected" }).eq("id", txId);
+  if (error) throw error;
+}
+
+// ── Active co-hosts + live co-host request notifications ────────────────────
+export async function getActiveCohosts(roomName) {
+  const { data, error } = await supabase
+    .from("live_cohost_requests")
+    .select("guest_id, profiles:guest_id(username, profile_pic, verified)")
+    .eq("room_name", roomName)
+    .eq("status", "accepted");
+  if (error) return [];
+  return data.map((r) => ({
+    userId: r.guest_id,
+    username: r.profiles?.username,
+    profilePic: r.profiles?.profile_pic,
+    verified: r.profiles?.verified,
+  }));
+}
+
+export function subscribeToCohostRequests(hostId, callback) {
+  const channel = supabase
+    .channel(`cohost-requests-${hostId}`)
+    .on(
+      "postgres_changes",
+      { event: "INSERT", schema: "public", table: "live_cohost_requests", filter: `host_id=eq.${hostId}` },
+      callback
+    )
+    .subscribe();
+  return () => supabase.removeChannel(channel);
 }
