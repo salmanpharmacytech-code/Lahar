@@ -359,6 +359,25 @@ function GiftSheet({balance,onClose,onSend}){
 }
 
 // ── Post Card ─────────────────────────────────────────────────────────────────
+// ── Sponsored ad card (shown periodically in feed/reels) ─────────────────────
+function AdCard({ad}){
+  return (
+    <div style={{background:"#1C1233",border:"1px solid #FFD166",borderRadius:18,overflow:"hidden",marginBottom:14}}>
+      <div style={{display:"flex",alignItems:"center",gap:8,padding:"8px 14px"}}>
+        <span style={{background:"rgba(255,209,102,.15)",color:"#FFD166",fontSize:10,fontWeight:800,padding:"2px 8px",borderRadius:999,letterSpacing:"0.04em"}}>SPONSORED</span>
+        {ad.username&&<span style={{color:"#9B8FC0",fontSize:11}}>{ad.username}</span>}
+      </div>
+      <img src={ad.imageUrl} alt="" style={{width:"100%",maxHeight:340,objectFit:"cover",display:"block"}}/>
+      {(ad.caption||ad.linkUrl)&&(
+        <div style={{padding:"10px 14px",display:"flex",alignItems:"center",gap:10}}>
+          {ad.caption&&<p style={{flex:1,color:"#D9CCF0",fontSize:12,margin:0}}>{ad.caption}</p>}
+          {ad.linkUrl&&<a href={ad.linkUrl} target="_blank" rel="noreferrer" style={{background:"#FFD166",color:"#221705",fontSize:11,fontWeight:800,padding:"6px 14px",borderRadius:999,textDecoration:"none",whiteSpace:"nowrap"}}>Visit</a>}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function PostCard({post,user,onLike,onOpenComments,onOpenGift,onOpenLive,onOpenMedia,onDelete,onOpenProfile,onSetReaction}){
   const liked=post.likes?.includes(user.userId);
   const author=post.author;
@@ -606,7 +625,9 @@ function FeedView({posts,user,refreshFeed,notify,fireBurst,onOpenLive,onOpenProf
   const [giftPost,setGiftPost]=useState(null);
   const [mediaPost,setMediaPost]=useState(null);
   const [confirmDelete,setConfirmDelete]=useState(null);
+  const [ads,setAds]=useState([]);
   const visible=posts.filter(p=>!p.isLive&&!p.isReel);
+  useEffect(()=>{ db.getActiveAds().then(setAds).catch(()=>{}); },[]);
 
   async function handleLike(post){
     const liked=post.likes?.includes(user.userId);
@@ -648,7 +669,12 @@ function FeedView({posts,user,refreshFeed,notify,fireBurst,onOpenLive,onOpenProf
     <div style={{padding:"10px 12px"}}>
       <StoriesRow user={user} notify={notify}/>
       {visible.length===0&&<div style={{textAlign:"center",padding:"60px 0",color:"#9B8FC0"}}><div style={{marginBottom:8,display:"flex",justifyContent:"center",color:"#3A2A5C"}}><Icon name="image" size={36}/></div><p>No posts yet — tap + to post!</p></div>}
-      {visible.map(post=><PostCard key={post.postId} post={post} user={user} onLike={handleLike} onOpenComments={setCommentPost} onOpenGift={setGiftPost} onOpenLive={onOpenLive} onOpenMedia={setMediaPost} onDelete={setConfirmDelete} onOpenProfile={onOpenProfile} onSetReaction={handleSetReaction}/>)}
+      {visible.map((post,i)=>(
+        <div key={post.postId}>
+          <PostCard post={post} user={user} onLike={handleLike} onOpenComments={setCommentPost} onOpenGift={setGiftPost} onOpenLive={onOpenLive} onOpenMedia={setMediaPost} onDelete={setConfirmDelete} onOpenProfile={onOpenProfile} onSetReaction={handleSetReaction}/>
+          {ads.length>0&&(i+1)%6===0&&<AdCard ad={ads[Math.floor(i/6)%ads.length]}/>}
+        </div>
+      ))}
       {commentPost&&<CommentSheet post={posts.find(p=>p.postId===commentPost.postId)||commentPost} user={user} onClose={()=>setCommentPost(null)} onAddComment={handleAddComment} onReact={handleReact} onDeleteComment={handleDeleteComment}/>}
       {giftPost&&<GiftSheet balance={user.coinBalance} onClose={()=>setGiftPost(null)} onSend={handleSendGift}/>}
       {mediaPost&&<MediaViewerModal post={mediaPost} onClose={()=>setMediaPost(null)}/>}
@@ -736,6 +762,10 @@ function ReelsView({posts,user,notify,refreshFeed,fireBurst}){
   const seekBarRef=useRef(null);
   const touchStartX=useRef(null);
   const touchStartY=useRef(null);
+  const [ads,setAds]=useState([]);
+  const [adDismissed,setAdDismissed]=useState(false);
+  useEffect(()=>{ db.getActiveAds().then(setAds).catch(()=>{}); },[]);
+  useEffect(()=>{ setAdDismissed(false); },[current]);
   useEffect(()=>{ if(vRef.current){vRef.current.load();vRef.current.play().catch(()=>{}); setPlaying(true); setCurTime(0);} },[current]);
   function togglePlay(){
     const v=vRef.current; if(!v) return;
@@ -828,6 +858,17 @@ fireBurst({emoji:gift.emoji,name:gift.name,from:user.username,file:gift.file}); 
         <button onClick={()=>setShowUpload(true)} style={{marginTop:8,display:"flex",alignItems:"center",gap:5,background:"rgba(255,255,255,.2)",border:"1px solid rgba(255,255,255,.3)",borderRadius:999,padding:"5px 10px",color:"#fff",fontSize:11,fontWeight:700,cursor:"pointer",backdropFilter:"blur(8px)"}}><Icon name="upload" size={13}/> Reel Upload</button>
       </div>
       <div style={{position:"absolute",top:10,right:10,background:"rgba(0,0,0,.4)",borderRadius:999,padding:"3px 10px",color:"#fff",fontSize:11}}>{current+1}/{reels.length}</div>
+      {ads.length>0&&!adDismissed&&(current+1)%6===0&&(()=>{const ad=ads[Math.floor(current/6)%ads.length]; return (
+        <div style={{position:"absolute",top:44,left:10,right:10,background:"rgba(20,10,35,.85)",border:"1px solid #FFD166",borderRadius:14,padding:10,display:"flex",alignItems:"center",gap:10,zIndex:6}}>
+          <img src={ad.imageUrl} alt="" style={{width:40,height:40,borderRadius:8,objectFit:"cover"}}/>
+          <div style={{flex:1,minWidth:0}}>
+            <span style={{background:"rgba(255,209,102,.2)",color:"#FFD166",fontSize:8,fontWeight:800,padding:"1px 6px",borderRadius:999}}>SPONSORED</span>
+            <p style={{color:"#fff",fontSize:11,margin:"3px 0 0",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{ad.caption||ad.username}</p>
+          </div>
+          {ad.linkUrl&&<a href={ad.linkUrl} target="_blank" rel="noreferrer" style={{background:"#FFD166",color:"#221705",fontSize:10,fontWeight:800,padding:"5px 10px",borderRadius:999,textDecoration:"none",whiteSpace:"nowrap"}}>Visit</a>}
+          <button onClick={()=>setAdDismissed(true)} style={{background:"none",border:"none",color:"#9B8FC0",cursor:"pointer",display:"flex"}}><Icon name="close" size={14}/></button>
+        </div>
+      );})()}
       <div
         ref={seekBarRef}
         onClick={(e)=>{ e.stopPropagation(); seekTo(e.clientX); }}
@@ -1488,8 +1529,29 @@ function WalletView({user,notify,onRefreshUser}){
   const [busy,setBusy]=useState(false);
   const [verifyAmount,setVerifyAmount]=useState("");
   const [verifyRef,setVerifyRef]=useState("");
+  const [adImage,setAdImage]=useState(null);
+  const [adImagePreview,setAdImagePreview]=useState(null);
+  const [adLink,setAdLink]=useState("");
+  const [adCaption,setAdCaption]=useState("");
   const load=useCallback(async()=>{ setMyTx(await db.getMyTransactions(user.userId)); },[user.userId]);
   useEffect(()=>{ load(); const t=setInterval(load,5000); return ()=>clearInterval(t); },[load]);
+
+  function handleAdImage(e){
+    const f=e.target.files[0]; if(!f) return;
+    if(!f.type.startsWith("image")){ notify("Please upload an image only"); return; }
+    if(f.size>10*1024*1024){ notify("Image must be smaller than 10MB"); return; }
+    setAdImage(f); setAdImagePreview(URL.createObjectURL(f));
+  }
+  async function submitAd(){
+    if(!adImage){ notify("Please choose an image first"); return; }
+    setBusy(true);
+    try{
+      const url=await db.uploadMedia(adImage,user.userId);
+      await db.submitAdRequest({userId:user.userId,imageUrl:url,linkUrl:adLink.trim(),caption:adCaption.trim()});
+      setAdImage(null); setAdImagePreview(null); setAdLink(""); setAdCaption("");
+      notify("Ad submitted — waiting for admin approval");
+    }catch(e){ notify("Could not submit ad"); } finally { setBusy(false); }
+  }
 
   async function submitVerification(){
     const pkr=parseFloat(verifyAmount);
@@ -1536,7 +1598,7 @@ function WalletView({user,notify,onRefreshUser}){
         Buy: Rs.20 = 1 coin (min Rs.3,000) | Cash Out: 1 coin = Rs.12
       </div>
       <div style={{display:"flex",background:"#1C1233",borderRadius:12,padding:4,marginBottom:12,gap:4}}>
-        {["buy","withdraw","verify"].map(t=><button key={t} onClick={()=>setTab(t)} style={{flex:1,padding:8,borderRadius:8,border:"none",fontWeight:700,fontSize:11,background:tab===t?"#F4EEFF":"transparent",color:tab===t?"#120A22":"#9B8FC0",cursor:"pointer"}}>{t==="buy"?"Buy Coins":t==="withdraw"?"Cash Out":"Get Verified"}</button>)}
+        {["buy","withdraw","verify","advertise"].map(t=><button key={t} onClick={()=>setTab(t)} style={{flex:1,padding:8,borderRadius:8,border:"none",fontWeight:700,fontSize:10,background:tab===t?"#F4EEFF":"transparent",color:tab===t?"#120A22":"#9B8FC0",cursor:"pointer"}}>{t==="buy"?"Buy":t==="withdraw"?"Cash Out":t==="verify"?"Get Verified":"Advertise"}</button>)}
       </div>
       {tab==="buy"?(
         <div style={{display:"flex",flexDirection:"column",gap:10}}>
@@ -1575,6 +1637,25 @@ function WalletView({user,notify,onRefreshUser}){
           <input value={verifyAmount} onChange={e=>setVerifyAmount(e.target.value)} type="number" placeholder={`How much did you send (min Rs.${VERIFICATION_PRICE_PKR})?`} style={inp}/>
           <input value={verifyRef} onChange={e=>setVerifyRef(e.target.value)} placeholder="Transaction ID / reference (optional)" style={inp}/>
           <Btn onClick={submitVerification} disabled={busy} style={{width:"100%"}}>Request Verification</Btn>
+        </div>
+      ):(
+        <div style={{display:"flex",flexDirection:"column",gap:10}}>
+          <p style={{color:"#9B8FC0",fontSize:11,margin:0}}>Submit your logo/banner to be shown in everyone's feed after admin approval.</p>
+          {adImagePreview?(
+            <div style={{position:"relative",borderRadius:12,overflow:"hidden",background:"#000"}}>
+              <img src={adImagePreview} style={{width:"100%",maxHeight:180,objectFit:"contain"}} alt=""/>
+              <button onClick={()=>{setAdImage(null);setAdImagePreview(null);}} style={{position:"absolute",top:6,right:6,background:"rgba(0,0,0,.6)",border:"none",borderRadius:"50%",width:24,height:24,cursor:"pointer",color:"#fff",display:"flex",alignItems:"center",justifyContent:"center"}}><Icon name="close" size={13}/></button>
+            </div>
+          ):(
+            <label style={{border:"1.5px dashed rgba(168,85,247,.4)",borderRadius:14,padding:"24px 16px",textAlign:"center",color:"#9B8FC0",cursor:"pointer",background:"rgba(168,85,247,.06)"}}>
+              <input type="file" accept="image/*" onChange={handleAdImage} style={{display:"none"}}/>
+              <Icon name="upload" size={24} color="#A855F7"/>
+              <div style={{marginTop:8,fontSize:12}}>Choose ad image</div>
+            </label>
+          )}
+          <input value={adLink} onChange={e=>setAdLink(e.target.value)} placeholder="Link (optional, e.g. https://...)" style={inp}/>
+          <textarea value={adCaption} onChange={e=>setAdCaption(e.target.value)} placeholder="Caption (optional)" style={{...inp,minHeight:70,resize:"none"}}/>
+          <Btn onClick={submitAd} disabled={busy} style={{width:"100%"}}>Submit Ad For Approval</Btn>
         </div>
       )}
       {myTx.length>0&&(
@@ -1824,7 +1905,8 @@ function ProfileView({user,onLogout,onGoWallet,notify,onUserUpdate,onOpenProfile
 // ── Admin Panel ───────────────────────────────────────────────────────────────
 function AdminPanel({onExit,notify}){
   const [txs,setTxs]=useState([]);
-  const load=useCallback(async()=>{ setTxs(await db.getAllTransactions()); },[]);
+  const [ads,setAds]=useState([]);
+  const load=useCallback(async()=>{ setTxs(await db.getAllTransactions()); setAds(await db.getAllAds()); },[]);
   useEffect(()=>{ load(); const t=setInterval(load,4000); return ()=>clearInterval(t); },[load]);
 
   async function approveTopup(tx){ try{ await db.adminApproveTopup(tx.id); load(); }catch(e){ notify("Could not approve"); } }
@@ -1833,6 +1915,8 @@ function AdminPanel({onExit,notify}){
   async function rejectWithdraw(tx){ try{ await db.adminRejectWithdraw(tx.id); load(); }catch(e){ notify("Could not reject"); } }
   async function approveVerification(tx){ try{ await db.adminApproveVerification(tx.userId,tx.id); load(); }catch(e){ notify("Could not approve"); } }
   async function rejectVerification(tx){ try{ await db.adminRejectVerification(tx.id); load(); }catch(e){ notify("Could not reject"); } }
+  async function approveAd(ad){ try{ await db.adminApproveAd(ad.adId); load(); }catch(e){ notify("Could not approve"); } }
+  async function rejectAd(ad){ try{ await db.adminRejectAd(ad.adId); load(); }catch(e){ notify("Could not reject"); } }
 
   const pending=txs.filter(t=>t.status==="pending");
   const totalIn=txs.filter(t=>t.type==="topup"&&t.status==="approved").reduce((s,t)=>s+Number(t.amountPKR),0);
@@ -1875,6 +1959,21 @@ function AdminPanel({onExit,notify}){
               <Btn onClick={()=>markWithdrawPaid(t)} style={{flex:1,padding:"7px",fontSize:12,display:"flex",alignItems:"center",justifyContent:"center",gap:5}}><Icon name="cash" size={13}/> Paid</Btn>
               <Btn onClick={()=>rejectWithdraw(t)} ghost style={{flex:1,padding:"7px",fontSize:12}}>Reject</Btn>
             </>}
+          </div>
+        </div>
+      ))}
+
+      <h3 style={{color:"#F4EEFF",margin:"18px 0 8px",fontWeight:700}}>Ad Requests ({ads.filter(a=>a.status==="pending").length})</h3>
+      {ads.filter(a=>a.status==="pending").length===0&&<p style={{color:"#9B8FC0",fontSize:13}}>No pending ad requests</p>}
+      {ads.filter(a=>a.status==="pending").map(ad=>(
+        <div key={ad.adId} style={{background:"#1C1233",border:"1px solid #2E1F4D",borderRadius:12,padding:12,marginBottom:10}}>
+          <img src={ad.imageUrl} alt="" style={{width:"100%",maxHeight:140,objectFit:"cover",borderRadius:8,marginBottom:8}}/>
+          <p style={{color:"#F4EEFF",fontSize:12,fontWeight:700,margin:"0 0 2px"}}>{ad.username}</p>
+          {ad.caption&&<p style={{color:"#D9CCF0",fontSize:11,margin:"0 0 4px"}}>{ad.caption}</p>}
+          {ad.linkUrl&&<p style={{color:"#9B8FC0",fontSize:10,margin:"0 0 8px",wordBreak:"break-all"}}>{ad.linkUrl}</p>}
+          <div style={{display:"flex",gap:8}}>
+            <Btn onClick={()=>approveAd(ad)} style={{flex:1,padding:"7px",fontSize:12}}>Approve</Btn>
+            <Btn onClick={()=>rejectAd(ad)} ghost style={{flex:1,padding:"7px",fontSize:12}}>Reject</Btn>
           </div>
         </div>
       ))}
