@@ -810,3 +810,17 @@ export function subscribeToCohostRequests(hostId, callback) {
     .subscribe();
   return () => supabase.removeChannel(channel);
 }
+
+// ── Live PK Battle (realtime broadcast, no DB table needed) ────────────────
+export function subscribeToBattle(roomName, onEvent) {
+  const channel = supabase
+    .channel(`battle-${roomName}`)
+    .on("broadcast", { event: "battle" }, (msg) => onEvent(msg.payload))
+    .subscribe();
+  return { unsubscribe: () => supabase.removeChannel(channel), channel };
+}
+
+export function sendBattleEvent(roomName, payload) {
+  const channel = supabase.channel(`battle-${roomName}`);
+  channel.send({ type: "broadcast", event: "battle", payload });
+}
