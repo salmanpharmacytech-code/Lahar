@@ -1112,9 +1112,17 @@ room.on(RoomEvent.ParticipantConnected,(p)=>{ setParticipants(prev=>new Set(prev
           {isHost&&<button onClick={closeLive} style={{background:"#E11D48",border:"none",borderRadius:999,padding:"5px 12px",color:"#fff",fontSize:11,fontWeight:700,cursor:"pointer"}}>End Live</button>}
         </div>
 
-<div style={{width:"100%",height:"100%",display:"flex",flexDirection:hasGuest?"column":undefined}}>
-            <video ref={mainVideoRef} autoPlay playsInline muted={isHost} style={{width:"100%",height:hasGuest?"50%":"100%",objectFit:"cover",transform:isHost?"scaleX(-1)":"none"}}/>
-            {hasGuest&&<video ref={guestVideoRef} autoPlay playsInline muted={amCohost} style={{width:"100%",height:"50%",objectFit:"cover",borderTop:"2px solid #2E1F4D",transform:amCohost?"scaleX(-1)":"none"}}/>}
+        <div style={{width:"100%",height:"100%",display:"flex",flexDirection:hasGuest?"column":undefined,position:"relative"}}>
+            <div style={{position:"relative",width:"100%",height:hasGuest?"50%":"100%"}}>
+              <video ref={mainVideoRef} autoPlay playsInline muted={isHost} style={{width:"100%",height:"100%",objectFit:"cover",transform:isHost?"scaleX(-1)":"none"}}/>
+              {hasGuest&&<span style={{position:"absolute",bottom:8,left:10,background:"rgba(0,0,0,.5)",borderRadius:999,padding:"3px 10px",color:"#fff",fontSize:11,fontWeight:700}}>{live.username}</span>}
+            </div>
+            {hasGuest&&(
+              <div style={{position:"relative",width:"100%",height:"50%",borderTop:"2px solid #A855F7"}}>
+                <video ref={guestVideoRef} autoPlay playsInline muted={amCohost} style={{width:"100%",height:"100%",objectFit:"cover",transform:amCohost?"scaleX(-1)":"none"}}/>
+                <span style={{position:"absolute",bottom:8,left:10,background:"rgba(0,0,0,.5)",borderRadius:999,padding:"3px 10px",color:"#fff",fontSize:11,fontWeight:700}}>{cohostInfo?.username||"Guest"}</span>
+              </div>
+            )}
           </div>
         
 
@@ -1122,7 +1130,7 @@ room.on(RoomEvent.ParticipantConnected,(p)=>{ setParticipants(prev=>new Set(prev
           <div style={{position:"absolute",inset:0,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",background:"linear-gradient(180deg,#1A0E22,#120A22)"}}>
             <div style={{marginBottom:8,display:"flex",justifyContent:"center"}}><Icon name="live" size={44} color="#FF4D6D"/></div>
             <Avatar name={live.username} size={64} live pic={live.author?.profilePic}/>
-            <p style={{marginTop:12,color:"#9B8FC0",fontSize:13}}>Stream se connect ho raha hai...</p>
+            <p style={{marginTop:12,color:"#9B8FC0",fontSize:13}}>Connecting to stream...</p>
           </div>
         )}
         {connected&&(
