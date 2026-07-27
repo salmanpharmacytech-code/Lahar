@@ -964,6 +964,12 @@ function LiveDetailView({post,posts,user,onBack,fireBurst,notify,onCloseLive,ref
   const [comments,setComments]=useState(post.comments||[]);
   const [text,setText]=useState("");
   const [showGift,setShowGift]=useState(false);
+  const [giftTarget,setGiftTarget]=useState(null); // {userId,username} — who a gift is being sent to
+  const [battleActive,setBattleActive]=useState(false);
+  const [battleEndsAt,setBattleEndsAt]=useState(null);
+  const [battleScores,setBattleScores]=useState({});
+  const [battleResult,setBattleResult]=useState(null);
+  const [battleRemaining,setBattleRemaining]=useState(0);
   const [connected,setConnected]=useState(false);
   const [showInvite,setShowInvite]=useState(false);
   const [cohostInfo,setCohostInfo]=useState(null);
@@ -1089,10 +1095,52 @@ room.on(RoomEvent.ParticipantConnected,(p)=>{ setParticipants(prev=>new Set(prev
     try{ await db.endLivePost(post.postId); }catch(e){}
     onCloseLive(); onBack(); refreshFeed();
   }
+
+  useEffect(()=>{
+    if(!post.roomName) return;
+    const sub=db.subscribeToBattle(post.roomName,(payload)=>{
+      if(payload.type==="start"){
+        setBattleActive(true); setBattleEndsAt(payload.endsAt); setBattleScores({[payload.hostId]:0,[payload.guestId]:0}); setBattleResult(null);
+      } else if(payload.type==="score"){
+        setBattleScores(prev=>({...prev,[payload.userId]:(prev[payload.userId]||0)+payload.coins}));
+      } else if(payload.type==="end"){
+        setBattleActive(false); setBattleEndsAt(null);
+      }
+    });
+    return ()=>sub.unsubscribe();
+  },[post.roomName]);
+
+  useEffect(()=>{
+    if(!battleActive||!battleEndsAt) return;
+    const t=setInterval(()=>{
+      const remaining=Math.max(0,Math.ceil((battleEndsAt-Date.now())/1000));
+      setBattleRemaining(remaining);
+      if(remaining<=0){
+        clearInterval(t);
+        const ids=Object.keys(battleScores);
+        if(ids.length===2){
+          const [a,b]=ids;
+          const winnerId=battleScores[a]>battleScores[b]?a:battleScores[b]>battleScores[a]?b:null;
+          setBattleResult(winnerId?{winnerId,tie:false}:{tie:true});
+        }
+        setBattleActive(false);
+        setTimeout(()=>{ setBattleResult(null); setBattleEndsAt(null); },5000);
+      }
+    },500);
+    return ()=>clearInterval(t);
+  },[battleActive,battleEndsAt,battleScores]);
+
+  function startBattle(){
+    if(!cohostInfo) return;
+    const endsAt=Date.now()+3*60*1000;
+    db.sendBattleEvent(post.roomName,{type:"start",endsAt,hostId:post.userId,guestId:cohostInfo.userId});
+  }
   async function sendGift(gift){
+    const targetId=giftTarget?.userId||live.userId;
     try{
-      const newBal=await db.sendGift({fromId:user.userId,toId:live.userId,postId:post.postId,gift});
-      fireBurst({emoji:gift.emoji,name:gift.name,from:user.username,file:gift.file}); setShowGift(false);
+      const newBal=await db.sendGift({fromId:user.userId,toId:targetId,postId:post.postId,gift});
+      fireBurst({emoji:gift.emoji,name:gift.name,from:user.username,file:gift.file}); setShowGift(false); setGiftTarget(null);
+      if(battleActive) db.sendBattleEvent(post.roomName,{type:"score",userId:targetId,coins:gift.cost});
       window.dispatchEvent(new CustomEvent("lehar:balance",{detail:newBal}));
     }catch(e){ notify(e?.message==="INSUFFICIENT_COINS"?"Not enough coins":"Could not send gift"); }
   }
@@ -1109,18 +1157,43 @@ room.on(RoomEvent.ParticipantConnected,(p)=>{ setParticipants(prev=>new Set(prev
         <div style={{position:"absolute",top:12,right:12,display:"flex",gap:8,zIndex:5}}>
           <div style={{background:"rgba(0,0,0,.4)",borderRadius:999,padding:"5px 10px",color:"#fff",fontSize:12,display:"flex",alignItems:"center",gap:5}}><Icon name="eye" size={13} color="#fff"/> {viewers}</div>
           {isHost&&!cohostInfo&&<button onClick={()=>setShowInvite(true)} style={{background:"#7C3AED",border:"none",borderRadius:999,padding:"5px 12px",color:"#fff",fontSize:11,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",gap:4}}><Icon name="plus" size={12}/> Co-Host</button>}
+          {isHost&&cohostInfo&&!battleActive&&!battleResult&&<button onClick={startBattle} style={{background:"linear-gradient(135deg,#E11D48,#A855F7)",border:"none",borderRadius:999,padding:"5px 12px",color:"#fff",fontSize:11,fontWeight:700,cursor:"pointer"}}>⚔ Battle</button>}
           {isHost&&<button onClick={closeLive} style={{background:"#E11D48",border:"none",borderRadius:999,padding:"5px 12px",color:"#fff",fontSize:11,fontWeight:700,cursor:"pointer"}}>End Live</button>}
         </div>
+
+        {(battleActive||battleResult)&&(
+          <div style={{position:"absolute",top:56,left:12,right:12,zIndex:6,background:"#1C1233",border:"1px solid #A855F7",borderRadius:14,padding:"8px 12px"}}>
+            {battleResult?(
+              <p style={{margin:0,textAlign:"center",color:"#FFD166",fontWeight:800,fontSize:13}}>
+                {battleResult.tie?"🤝 It's a tie!":`🏆 ${battleResult.winnerId===post.userId?live.username:(cohostInfo?.username||"Guest")} wins!`}
+              </p>
+            ):(
+              <>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+                  <span style={{color:"#F4EEFF",fontWeight:700,fontSize:12}}>{battleScores[post.userId]||0}</span>
+                  <span style={{color:"#9B8FC0",fontSize:11,fontWeight:700}}>{Math.floor(battleRemaining/60)}:{String(battleRemaining%60).padStart(2,"0")}</span>
+                  <span style={{color:"#F4EEFF",fontWeight:700,fontSize:12}}>{(cohostInfo&&battleScores[cohostInfo.userId])||0}</span>
+                </div>
+                <div style={{display:"flex",height:6,borderRadius:999,overflow:"hidden",background:"#2E1F4D"}}>
+                  <div style={{background:"#E11D48",width:`${(()=>{const a=battleScores[post.userId]||0;const b=(cohostInfo&&battleScores[cohostInfo.userId])||0;const t=a+b;return t?Math.round((a/t)*100):50;})()}%`}}/>
+                  <div style={{background:"#A855F7",flex:1}}/>
+                </div>
+              </>
+            )}
+          </div>
+        )}
 
         <div style={{width:"100%",height:"100%",display:"flex",flexDirection:hasGuest?"column":undefined,position:"relative"}}>
             <div style={{position:"relative",width:"100%",height:hasGuest?"50%":"100%"}}>
               <video ref={mainVideoRef} autoPlay playsInline muted={isHost} style={{width:"100%",height:"100%",objectFit:"cover",transform:isHost?"scaleX(-1)":"none"}}/>
               {hasGuest&&<span style={{position:"absolute",bottom:8,left:10,background:"rgba(0,0,0,.5)",borderRadius:999,padding:"3px 10px",color:"#fff",fontSize:11,fontWeight:700}}>{live.username}</span>}
+              {hasGuest&&<button onClick={()=>{setGiftTarget({userId:post.userId,username:live.username});setShowGift(true);}} style={{position:"absolute",bottom:8,right:10,background:"#FFD166",border:"none",borderRadius:"50%",width:28,height:28,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}><Icon name="gift" size={14} color="#120A22"/></button>}
             </div>
             {hasGuest&&(
               <div style={{position:"relative",width:"100%",height:"50%",borderTop:"2px solid #A855F7"}}>
                 <video ref={guestVideoRef} autoPlay playsInline muted={amCohost} style={{width:"100%",height:"100%",objectFit:"cover",transform:amCohost?"scaleX(-1)":"none"}}/>
                 <span style={{position:"absolute",bottom:8,left:10,background:"rgba(0,0,0,.5)",borderRadius:999,padding:"3px 10px",color:"#fff",fontSize:11,fontWeight:700}}>{cohostInfo?.username||"Guest"}</span>
+                <button onClick={()=>{setGiftTarget({userId:cohostInfo?.userId,username:cohostInfo?.username});setShowGift(true);}} style={{position:"absolute",bottom:8,right:10,background:"#FFD166",border:"none",borderRadius:"50%",width:28,height:28,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}><Icon name="gift" size={14} color="#120A22"/></button>
               </div>
             )}
           </div>
@@ -1175,7 +1248,7 @@ room.on(RoomEvent.ParticipantConnected,(p)=>{ setParticipants(prev=>new Set(prev
         </div>
         <div style={{display:"flex",gap:6,padding:8,borderTop:"1px solid #2E1F4D"}}>
           <input value={text} onChange={e=>setText(e.target.value)} onKeyDown={e=>e.key==="Enter"&&sendChat()} placeholder="Type a message..." style={{flex:1,background:"#120A22",border:"1px solid #2E1F4D",borderRadius:999,padding:"7px 12px",color:"#F4EEFF",fontSize:13,outline:"none"}}/>
-          <button onClick={()=>setShowGift(true)} style={{background:"#FFD166",border:"none",borderRadius:"50%",width:34,height:34,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}><Icon name="gift" size={16} color="#120A22"/></button>
+          {!hasGuest&&<button onClick={()=>{setGiftTarget(null);setShowGift(true);}} style={{background:"#FFD166",border:"none",borderRadius:"50%",width:34,height:34,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}><Icon name="gift" size={16} color="#120A22"/></button>}
           <button onClick={sendChat} style={{background:"#2E1F4D",border:"none",borderRadius:"50%",width:34,height:34,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}><Icon name="send" size={15}/></button>
         </div>
       </div>
