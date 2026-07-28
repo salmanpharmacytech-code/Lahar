@@ -1550,7 +1550,7 @@ function WalletView({user,notify,onRefreshUser}){
   const [adImagePreview,setAdImagePreview]=useState(null);
   const [adLink,setAdLink]=useState("");
   const [adCaption,setAdCaption]=useState("");
-  const load=useCallback(async()=>{ setMyTx(await db.getMyTransactions(user.userId)); },[user.userId]);
+  const load=useCallback(async()=>{ try{ setMyTx(await db.getMyTransactions(user.userId)); }catch(e){} },[user.userId]);
   useEffect(()=>{ load(); const t=setInterval(load,5000); return ()=>clearInterval(t); },[load]);
 
   function handleAdImage(e){
@@ -1789,9 +1789,12 @@ function VerifyIdentityCard({user,notify}){
   const [busy,setBusy]=useState(false);
 
   const load=useCallback(async()=>{
-    const list=await db.getMyTransactions(user.userId);
-    const verifs=list.filter(t=>t.type==="verification").sort((a,b)=>b.createdAt-a.createdAt);
-    setStatus(verifs[0]||null); setLoaded(true);
+    try{
+      const list=await db.getMyTransactions(user.userId);
+      const verifs=list.filter(t=>t.type==="verification").sort((a,b)=>b.createdAt-a.createdAt);
+      setStatus(verifs[0]||null);
+    }catch(e){}
+    setLoaded(true);
   },[user.userId]);
   useEffect(()=>{ load(); },[load]);
 
@@ -2026,7 +2029,10 @@ function VerificationDocsPreview({tx}){
 function AdminPanel({onExit,notify}){
   const [txs,setTxs]=useState([]);
   const [ads,setAds]=useState([]);
-  const load=useCallback(async()=>{ setTxs(await db.getAllTransactions()); setAds(await db.getAllAds()); },[]);
+  const load=useCallback(async()=>{
+    try{ setTxs(await db.getAllTransactions()); setAds(await db.getAllAds()); }
+    catch(e){ notify("Could not load transactions — check admin permissions (RLS)"); }
+  },[notify]);
   useEffect(()=>{ load(); const t=setInterval(load,4000); return ()=>clearInterval(t); },[load]);
 
   async function approveTopup(tx){ try{ await db.adminApproveTopup(tx.id); load(); }catch(e){ notify("Could not approve"); } }
