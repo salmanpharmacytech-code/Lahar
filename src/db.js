@@ -475,6 +475,8 @@ export async function getMyTransactions(userId) {
     coins: t.coins,
     method: t.method,
     reference: t.reference,
+    fullName: t.full_name,
+    cnic: t.cnic,
     status: t.status,
     createdAt: new Date(t.created_at).getTime(),
   }));
@@ -496,6 +498,8 @@ export async function getAllTransactions() {
     coins: t.coins,
     method: t.method,
     reference: t.reference,
+    fullName: t.full_name,
+    cnic: t.cnic,
     status: t.status,
     createdAt: new Date(t.created_at).getTime(),
   }));
@@ -663,19 +667,40 @@ function typingChannelName(userIdA, userIdB) {
   return `typing-${[userIdA, userIdB].sort().join("-")}`;
 }
 
+const typingChannels = new Map(); // channelName -> channel
+
+function getTypingChannel(name) {
+  let channel = typingChannels.get(name);
+  if (!channel) {
+    channel = supabase.channel(name);
+    typingChannels.set(name, channel);
+  }
+  return channel;
+}
+
 export function sendTypingEvent(userId, partnerId) {
-  const channel = supabase.channel(typingChannelName(userId, partnerId));
-  channel.send({ type: "broadcast", event: "typing", payload: { from: userId } });
+  const name = typingChannelName(userId, partnerId);
+  const channel = getTypingChannel(name);
+  if (channel.state === "joined") {
+    channel.send({ type: "broadcast", event: "typing", payload: { from: userId } });
+  } else {
+    channel.subscribe((status) => {
+      if (status === "SUBSCRIBED") channel.send({ type: "broadcast", event: "typing", payload: { from: userId } });
+    });
+  }
 }
 
 export function subscribeToTyping(userId, partnerId, onTyping) {
-  const channel = supabase
-    .channel(typingChannelName(userId, partnerId))
-    .on("broadcast", { event: "typing" }, (msg) => {
-      if (msg.payload?.from && msg.payload.from !== userId) onTyping();
-    })
-    .subscribe();
-  return () => supabase.removeChannel(channel);
+  const name = typingChannelName(userId, partnerId);
+  const channel = getTypingChannel(name);
+  channel.on("broadcast", { event: "typing" }, (msg) => {
+    if (msg.payload?.from && msg.payload.from !== userId) onTyping();
+  });
+  if (channel.state !== "joined" && channel.state !== "joining") channel.subscribe();
+  return () => {
+    supabase.removeChannel(channel);
+    typingChannels.delete(name);
+  };
 }
 
 // ── View count ────────────────────────────────────────────────────────────────
@@ -755,10 +780,20 @@ function toStory(row) {
 }
 
 // ── Verification subscription (monthly paid blue tick) ──────────────────────
-export async function requestVerification({ userId, amountPKR, coins, method, reference }) {
+export async function requestVerification({ userId, amountPKR, coins, method, reference, fullName, cnic }) {
   const { data, error } = await supabase
     .from("transactions")
-    .insert({ user_id: userId, type: "verification", amount_pkr: amountPKR, coins: coins || 0, method, reference, status: "pending" })
+    .insert({
+      user_id: userId,
+      type: "verification",
+      amount_pkr: amountPKR,
+      coins: coins || 0,
+      method,
+      reference,
+      full_name: fullName,
+      cnic,
+      status: "pending",
+    })
     .select()
     .single();
   if (error) throw error;
@@ -812,17 +847,43 @@ export function subscribeToCohostRequests(hostId, callback) {
 }
 
 // ── Live PK Battle (realtime broadcast, no DB table needed) ────────────────
+// NOTE: broadcast messages can only be sent on a channel that has already
+// joined ("subscribed"). Previously sendBattleEvent created a brand-new,
+// never-subscribed channel on every call, so battle start/score events were
+// silently dropped. We now keep one subscribed channel per room and reuse it.
+const battleChannels = new Map(); // roomName -> channel
+
+function getBattleChannel(roomName) {
+  let channel = battleChannels.get(roomName);
+  if (!channel) {
+    channel = supabase.channel(`battle-${roomName}`);
+    battleChannels.set(roomName, channel);
+  }
+  return channel;
+}
+
 export function subscribeToBattle(roomName, onEvent) {
-  const channel = supabase
-    .channel(`battle-${roomName}`)
-    .on("broadcast", { event: "battle" }, (msg) => onEvent(msg.payload))
-    .subscribe();
-  return { unsubscribe: () => supabase.removeChannel(channel), channel };
+  const channel = getBattleChannel(roomName);
+  channel.on("broadcast", { event: "battle" }, (msg) => onEvent(msg.payload));
+  if (channel.state !== "joined" && channel.state !== "joining") channel.subscribe();
+  return {
+    unsubscribe: () => {
+      supabase.removeChannel(channel);
+      battleChannels.delete(roomName);
+    },
+    channel,
+  };
 }
 
 export function sendBattleEvent(roomName, payload) {
-  const channel = supabase.channel(`battle-${roomName}`);
-  channel.send({ type: "broadcast", event: "battle", payload });
+  const channel = getBattleChannel(roomName);
+  if (channel.state === "joined") {
+    channel.send({ type: "broadcast", event: "battle", payload });
+  } else {
+    channel.subscribe((status) => {
+      if (status === "SUBSCRIBED") channel.send({ type: "broadcast", event: "battle", payload });
+    });
+  }
 }
 
 // ── Advertisements ─────────────────────────────────────────────────────────────
