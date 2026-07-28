@@ -824,15 +824,8 @@ export async function submitVerificationRequest({ fullName, cnicFrontPath, cnicB
 }
 
 export async function adminApproveVerification(userId, txId) {
-  const verifiedUntil = new Date();
-  verifiedUntil.setDate(verifiedUntil.getDate() + 30);
-  const { error: pErr } = await supabase
-    .from("profiles")
-    .update({ verified: true, verified_until: verifiedUntil.toISOString() })
-    .eq("user_id", userId);
-  if (pErr) throw pErr;
-  const { error: tErr } = await supabase.from("transactions").update({ status: "approved" }).eq("id", txId);
-  if (tErr) throw tErr;
+  const { error } = await supabase.rpc("admin_approve_verification", { p_tx_id: txId });
+  if (error) throw error;
   await addNotification(userId, "ki verification approve ho gayi hai — 30 din ke liye blue tick mil gaya");
 }
 
