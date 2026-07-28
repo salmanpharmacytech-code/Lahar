@@ -466,7 +466,7 @@ export async function getMyTransactions(userId) {
     .select("*")
     .eq("user_id", userId)
     .order("created_at", { ascending: false });
-  if (error) return [];
+  if (error) throw error;
   return data.map((t) => ({
     id: t.id,
     type: t.type,
@@ -490,7 +490,7 @@ export async function getAllTransactions() {
     .from("transactions")
     .select("*, profiles:user_id(username)")
     .order("created_at", { ascending: false });
-  if (error) return [];
+  if (error) throw error;
   return data.map((t) => ({
     id: t.id,
     type: t.type,
