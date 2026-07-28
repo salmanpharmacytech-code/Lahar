@@ -102,6 +102,7 @@ const TOPUP_COINS_PER_PKR = 1/20;
 const WITHDRAW_COINS_PER_PKR = 1/12;
 const MIN_TOPUP_PKR = 3000;
 const VERIFICATION_PRICE_PKR = 500;
+const VERIFICATION_PRICE_COINS = Math.round(VERIFICATION_PRICE_PKR*TOPUP_COINS_PER_PKR); // paid directly from coin balance now
 const GIFT_STORAGE_URL = "https://xfmzqphclvakfhezmdie.supabase.co/storage/v1/object/public/gift-animations/";
 function giftMediaUrl(file){ return file ? `${GIFT_STORAGE_URL}${file}` : null; }
 
@@ -1545,10 +1546,6 @@ function WalletView({user,notify,onRefreshUser}){
   const [withdrawNumber,setWithdrawNumber]=useState("");
   const [myTx,setMyTx]=useState([]);
   const [busy,setBusy]=useState(false);
-  const [verifyAmount,setVerifyAmount]=useState("");
-  const [verifyRef,setVerifyRef]=useState("");
-  const [verifyName,setVerifyName]=useState("");
-  const [verifyCnic,setVerifyCnic]=useState("");
   const [adImage,setAdImage]=useState(null);
   const [adImagePreview,setAdImagePreview]=useState(null);
   const [adLink,setAdLink]=useState("");
@@ -1571,20 +1568,6 @@ function WalletView({user,notify,onRefreshUser}){
       setAdImage(null); setAdImagePreview(null); setAdLink(""); setAdCaption("");
       notify("Ad submitted — waiting for admin approval");
     }catch(e){ notify("Could not submit ad"); } finally { setBusy(false); }
-  }
-
-  async function submitVerification(){
-    const name=verifyName.trim();
-    const cnicDigits=verifyCnic.replace(/[^0-9]/g,"");
-    if(!name){ notify("Please enter your full name (as per CNIC)"); return; }
-    if(cnicDigits.length!==13){ notify("Please enter a valid 13-digit CNIC number"); return; }
-    const pkr=parseFloat(verifyAmount);
-    if(!pkr||pkr<VERIFICATION_PRICE_PKR){ notify(`Verification costs Rs.${VERIFICATION_PRICE_PKR.toLocaleString()}/month`); return; }
-    setBusy(true);
-    try{
-      await db.requestVerification({userId:user.userId,amountPKR:pkr,method,reference:verifyRef.trim(),fullName:name,cnic:cnicDigits});
-      setVerifyAmount(""); setVerifyRef(""); setVerifyName(""); setVerifyCnic(""); notify("Request sent — waiting for admin approval"); load();
-    }catch(e){ notify("Could not send request"); } finally { setBusy(false); }
   }
 
   async function submitTopup(){
@@ -1622,7 +1605,7 @@ function WalletView({user,notify,onRefreshUser}){
         Buy: Rs.20 = 1 coin (min Rs.3,000) | Cash Out: 1 coin = Rs.12
       </div>
       <div style={{display:"flex",background:"#1C1233",borderRadius:12,padding:4,marginBottom:12,gap:4}}>
-        {["buy","withdraw","verify","advertise"].map(t=><button key={t} onClick={()=>setTab(t)} style={{flex:1,padding:8,borderRadius:8,border:"none",fontWeight:700,fontSize:10,background:tab===t?"#F4EEFF":"transparent",color:tab===t?"#120A22":"#9B8FC0",cursor:"pointer"}}>{t==="buy"?"Buy":t==="withdraw"?"Cash Out":t==="verify"?"Get Verified":"Advertise"}</button>)}
+        {["buy","withdraw","advertise"].map(t=><button key={t} onClick={()=>setTab(t)} style={{flex:1,padding:8,borderRadius:8,border:"none",fontWeight:700,fontSize:10,background:tab===t?"#F4EEFF":"transparent",color:tab===t?"#120A22":"#9B8FC0",cursor:"pointer"}}>{t==="buy"?"Buy":t==="withdraw"?"Cash Out":"Advertise"}</button>)}
       </div>
       {tab==="buy"?(
         <div style={{display:"flex",flexDirection:"column",gap:10}}>
@@ -1644,28 +1627,6 @@ function WalletView({user,notify,onRefreshUser}){
           </div>
           <input value={withdrawNumber} onChange={e=>setWithdrawNumber(e.target.value)} placeholder="Your account number" style={inp}/>
           <Btn onClick={submitWithdraw} disabled={busy} style={{width:"100%"}}>Cash Out Request</Btn>
-        </div>
-      ):tab==="verify"?(
-        <div style={{display:"flex",flexDirection:"column",gap:10}}>
-          <div style={{background:"#1C1233",border:"1px solid rgba(168,85,247,.35)",borderRadius:12,padding:14,display:"flex",alignItems:"center",gap:10}}>
-            <Icon name="verified" size={22} color="#A855F7" fill="#A855F7" strokeWidth={0}/>
-            <div>
-              <p style={{margin:0,color:"#F4EEFF",fontWeight:700,fontSize:13}}>{user.verified?"You're verified":"Get the blue tick"}</p>
-              <p style={{margin:0,color:"#9B8FC0",fontSize:11}}>{user.verified&&user.verifiedUntil?`Valid until ${new Date(user.verifiedUntil).toLocaleDateString()}`:`Rs.${VERIFICATION_PRICE_PKR}/month`}</p>
-            </div>
-          </div>
-          <div style={{background:"#1C1233",border:"1px solid rgba(168,85,247,.35)",borderRadius:12,padding:14}}>
-            <p style={{color:"#F4EEFF",fontWeight:700,fontSize:12,margin:"0 0 8px"}}>Identity details (required before payment)</p>
-            <input value={verifyName} onChange={e=>setVerifyName(e.target.value)} placeholder="Full name (as per CNIC)" style={{...inp,marginBottom:8}}/>
-            <input value={verifyCnic} onChange={e=>setVerifyCnic(e.target.value)} placeholder="CNIC number (e.g. 12345-1234567-1)" style={inp}/>
-          </div>
-          <div style={{background:"#1C1233",border:"1px solid rgba(212,175,106,.4)",borderRadius:12,padding:14,textAlign:"center"}}>
-            <p style={{color:"#9B8FC0",fontSize:11,margin:"0 0 10px"}}>Scan to pay with Easypaisa / Raast</p>
-            <img src={QR_CODE_IMAGE} alt="Payment QR code" style={{width:"100%",maxWidth:260,borderRadius:10,margin:"0 auto",display:"block"}}/>
-          </div>
-          <input value={verifyAmount} onChange={e=>setVerifyAmount(e.target.value)} type="number" placeholder={`How much did you send (min Rs.${VERIFICATION_PRICE_PKR})?`} style={inp}/>
-          <input value={verifyRef} onChange={e=>setVerifyRef(e.target.value)} placeholder="Transaction ID / reference (optional)" style={inp}/>
-          <Btn onClick={submitVerification} disabled={busy} style={{width:"100%"}}>Request Verification</Btn>
         </div>
       ):(
         <div style={{display:"flex",flexDirection:"column",gap:10}}>
@@ -1813,6 +1774,100 @@ function UserProfileView({userId,currentUser,onBack,notify,onOpenChat,onOpenProf
   );
 }
 
+// ── Get Verified (in Profile Settings) — paid from coin balance, identity ───
+// reviewed by admin via CNIC front/back + face photo (no manual bank payment).
+function VerifyIdentityCard({user,notify}){
+  const [status,setStatus]=useState(null); // latest verification tx, or null
+  const [loaded,setLoaded]=useState(false);
+  const [fullName,setFullName]=useState("");
+  const [cnicFront,setCnicFront]=useState(null);
+  const [cnicFrontPreview,setCnicFrontPreview]=useState(null);
+  const [cnicBack,setCnicBack]=useState(null);
+  const [cnicBackPreview,setCnicBackPreview]=useState(null);
+  const [facePic,setFacePic]=useState(null);
+  const [facePicPreview,setFacePicPreview]=useState(null);
+  const [busy,setBusy]=useState(false);
+
+  const load=useCallback(async()=>{
+    const list=await db.getMyTransactions(user.userId);
+    const verifs=list.filter(t=>t.type==="verification").sort((a,b)=>b.createdAt-a.createdAt);
+    setStatus(verifs[0]||null); setLoaded(true);
+  },[user.userId]);
+  useEffect(()=>{ load(); },[load]);
+
+  function pickFile(setFile,setPreview){
+    return (e)=>{
+      const f=e.target.files?.[0]; if(!f) return;
+      if(!f.type.startsWith("image")){ notify("Please upload an image only"); return; }
+      if(f.size>10*1024*1024){ notify("Image must be smaller than 10MB"); return; }
+      setFile(f); setPreview(URL.createObjectURL(f));
+    };
+  }
+
+  async function submit(){
+    if(!fullName.trim()){ notify("Please enter your full name (as per CNIC)"); return; }
+    if(!cnicFront||!cnicBack||!facePic){ notify("Please upload CNIC front, CNIC back, and a face photo"); return; }
+    if(user.coinBalance<VERIFICATION_PRICE_COINS){ notify(`You need ${VERIFICATION_PRICE_COINS} coins — please top up first`); return; }
+    setBusy(true);
+    try{
+      const [frontPath,backPath,faceUploadPath]=await Promise.all([
+        db.uploadVerificationDoc(cnicFront,user.userId,"cnic_front"),
+        db.uploadVerificationDoc(cnicBack,user.userId,"cnic_back"),
+        db.uploadVerificationDoc(facePic,user.userId,"face"),
+      ]);
+      await db.submitVerificationRequest({fullName:fullName.trim(),cnicFrontPath:frontPath,cnicBackPath:backPath,facePath:faceUploadPath});
+      window.dispatchEvent(new CustomEvent("lehar:balance",{detail:user.coinBalance-VERIFICATION_PRICE_COINS}));
+      notify("Submitted — waiting for admin to review your documents");
+      setFullName(""); setCnicFront(null); setCnicFrontPreview(null); setCnicBack(null); setCnicBackPreview(null); setFacePic(null); setFacePicPreview(null);
+      load();
+    }catch(e){
+      notify(e?.message==="INSUFFICIENT_COINS"?`You need ${VERIFICATION_PRICE_COINS} coins — please top up first`:"Could not submit — please try again");
+    } finally { setBusy(false); }
+  }
+
+  const inp={width:"100%",background:"#120A22",border:"1px solid #2E1F4D",borderRadius:10,padding:"8px 12px",color:"#F4EEFF",fontSize:13,outline:"none",boxSizing:"border-box"};
+  const uploadBox=(label,preview,onPick)=>(
+    <label style={{display:"block",border:"1.5px dashed rgba(168,85,247,.4)",borderRadius:12,padding:preview?0:"16px 10px",textAlign:"center",color:"#9B8FC0",cursor:"pointer",background:"rgba(168,85,247,.06)",overflow:"hidden"}}>
+      <input type="file" accept="image/*" onChange={onPick} style={{display:"none"}}/>
+      {preview?<img src={preview} alt={label} style={{width:"100%",maxHeight:120,objectFit:"cover",display:"block"}}/>:(
+        <><Icon name="upload" size={18} color="#A855F7"/><div style={{marginTop:4,fontSize:11}}>{label}</div></>
+      )}
+    </label>
+  );
+
+  if(!loaded) return null;
+
+  return (
+    <div style={{background:"#1C1233",border:"1px solid rgba(168,85,247,.35)",borderRadius:14,padding:14,marginBottom:12}}>
+      <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:user.verified||status?.status==="pending"?0:12}}>
+        <Icon name="verified" size={20} color="#A855F7" fill="#A855F7" strokeWidth={0}/>
+        <div>
+          <p style={{margin:0,color:"#F4EEFF",fontWeight:700,fontSize:13}}>{user.verified?"You're verified":"Get the blue tick"}</p>
+          <p style={{margin:0,color:"#9B8FC0",fontSize:11}}>{user.verified&&user.verifiedUntil?`Valid until ${new Date(user.verifiedUntil).toLocaleDateString()}`:`${VERIFICATION_PRICE_COINS} coins/month`}</p>
+        </div>
+      </div>
+
+      {!user.verified&&status?.status==="pending"&&(
+        <p style={{color:"#FFD166",fontSize:12,margin:"10px 0 0"}}>⏳ Your request is submitted and waiting for admin review.</p>
+      )}
+
+      {!user.verified&&status?.status!=="pending"&&(
+        <div style={{marginTop:12,display:"flex",flexDirection:"column",gap:8}}>
+          {status?.status==="rejected"&&<p style={{color:"#FF8FA3",fontSize:11,margin:0}}>Your last request was rejected. You can submit again below.</p>}
+          <input value={fullName} onChange={e=>setFullName(e.target.value)} placeholder="Full name (as per CNIC)" style={inp}/>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+            {uploadBox("CNIC front",cnicFrontPreview,pickFile(setCnicFront,setCnicFrontPreview))}
+            {uploadBox("CNIC back",cnicBackPreview,pickFile(setCnicBack,setCnicBackPreview))}
+          </div>
+          {uploadBox("Face photo (selfie)",facePicPreview,pickFile(setFacePic,setFacePicPreview))}
+          <p style={{color:"#9B8FC0",fontSize:10,margin:0}}>{VERIFICATION_PRICE_COINS} coins will be deducted from your wallet on submit. Your balance: {user.coinBalance} coins.</p>
+          <Btn onClick={submit} disabled={busy} style={{width:"100%"}}>Submit For Review</Btn>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ProfileView({user,onLogout,onGoWallet,notify,onUserUpdate,onOpenProfile}){
   const [editing,setEditing]=useState(false);
   const [bio,setBio]=useState(user.bio||"");
@@ -1899,6 +1954,8 @@ function ProfileView({user,onLogout,onGoWallet,notify,onUserUpdate,onOpenProfile
         <span style={{color:"#FFD166",fontWeight:700,fontFamily:"monospace"}}>{user.coinBalance} coins</span>
       </button>
 
+      <VerifyIdentityCard user={user} notify={notify}/>
+
       <div style={{display:"flex",gap:16,marginBottom:10}}>
         <span style={{color:"#9B8FC0",fontSize:13}}>Posts <span style={{color:"#FFD166",fontWeight:700}}>{myMediaPosts.length}</span></span>
         <span style={{color:"#9B8FC0",fontSize:13}}>Reels <span style={{color:"#FFD166",fontWeight:700}}>{myReels.length}</span></span>
@@ -1932,6 +1989,40 @@ function ProfileView({user,onLogout,onGoWallet,notify,onUserUpdate,onOpenProfile
 }
 
 // ── Admin Panel ───────────────────────────────────────────────────────────────
+// Fetches short-lived signed URLs for a verification request's identity photos
+// (stored in a private bucket) and shows them as tappable thumbnails.
+function VerificationDocsPreview({tx}){
+  const [urls,setUrls]=useState(null);
+  useEffect(()=>{
+    let cancelled=false;
+    (async()=>{
+      const [front,back,face]=await Promise.all([
+        db.getVerificationDocUrl(tx.cnicFrontPath),
+        db.getVerificationDocUrl(tx.cnicBackPath),
+        db.getVerificationDocUrl(tx.facePicPath),
+      ]);
+      if(!cancelled) setUrls({front,back,face});
+    })();
+    return ()=>{cancelled=true;};
+  },[tx.id]);
+
+  if(!tx.fullName&&!tx.cnicFrontPath) return null;
+  return (
+    <div style={{marginBottom:8}}>
+      <p style={{color:"#FFD166",fontSize:12,margin:"0 0 6px",fontWeight:700}}>👤 {tx.fullName||"—"}</p>
+      {urls&&(
+        <div style={{display:"flex",gap:6}}>
+          {[["CNIC front",urls.front],["CNIC back",urls.back],["Face",urls.face]].map(([label,url])=>(
+            url?<a key={label} href={url} target="_blank" rel="noreferrer" style={{flex:1}}>
+              <img src={url} alt={label} style={{width:"100%",height:60,objectFit:"cover",borderRadius:8,border:"1px solid #2E1F4D"}}/>
+            </a>:<div key={label} style={{flex:1,height:60,borderRadius:8,border:"1px solid #2E1F4D",display:"flex",alignItems:"center",justifyContent:"center",color:"#5B4A80",fontSize:9}}>{label}</div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function AdminPanel({onExit,notify}){
   const [txs,setTxs]=useState([]);
   const [ads,setAds]=useState([]);
@@ -1976,10 +2067,8 @@ function AdminPanel({onExit,notify}){
             <span style={{fontWeight:700,color:"#F4EEFF",fontSize:13}}>{t.username}</span>
             <span style={{fontSize:11,fontWeight:700,padding:"2px 8px",borderRadius:999,background:t.type==="topup"?"rgba(5,150,105,.2)":t.type==="verification"?"rgba(168,85,247,.2)":"rgba(124,58,237,.2)",color:"#F472B6"}}>{t.type==="topup"?"Top-up":t.type==="verification"?"Verification":"Withdraw"}</span>
           </div>
-          <p style={{color:"#D9CCF0",fontSize:12,margin:"0 0 8px"}}>Rs.{t.amountPKR}{t.type!=="verification"?` • ${t.coins} coins`:""} • {t.method}{t.reference?` • ${t.reference}`:""}</p>
-          {t.type==="verification"&&(t.fullName||t.cnic)&&(
-            <p style={{color:"#FFD166",fontSize:12,margin:"0 0 8px",fontWeight:700}}>👤 {t.fullName||"—"} · CNIC: {t.cnic||"—"}</p>
-          )}
+          <p style={{color:"#D9CCF0",fontSize:12,margin:"0 0 8px"}}>{t.type==="verification"?`${t.coins} coins (auto-deducted)`:`Rs.${t.amountPKR} • ${t.coins} coins • ${t.method}${t.reference?` • ${t.reference}`:""}`}</p>
+          {t.type==="verification"&&<VerificationDocsPreview tx={t}/>}
           <div style={{display:"flex",gap:8}}>
             {t.type==="topup"?<>
               <Btn onClick={()=>approveTopup(t)} style={{flex:1,padding:"7px",fontSize:12}}>Approve</Btn>
