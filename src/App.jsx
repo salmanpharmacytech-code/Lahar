@@ -2039,8 +2039,8 @@ function AdminPanel({onExit,notify}){
   async function rejectTopup(tx){ try{ await db.adminRejectTopup(tx.id); load(); }catch(e){ notify("Could not reject"); } }
   async function markWithdrawPaid(tx){ try{ await db.adminApproveWithdraw(tx.id); load(); }catch(e){ notify("Could not update"); } }
   async function rejectWithdraw(tx){ try{ await db.adminRejectWithdraw(tx.id); load(); }catch(e){ notify("Could not reject"); } }
-  async function approveVerification(tx){ try{ await db.adminApproveVerification(tx.userId,tx.id); load(); }catch(e){ notify("Could not approve"); } }
-  async function rejectVerification(tx){ try{ await db.adminRejectVerification(tx.id); load(); }catch(e){ notify("Could not reject"); } }
+  async function approveVerification(tx){ try{ await db.adminApproveVerification(tx.userId,tx.id); load(); }catch(e){ notify("Could not approve: "+(e?.message||"unknown error")); } }
+  async function rejectVerification(tx){ try{ await db.adminRejectVerification(tx.id); load(); }catch(e){ notify("Could not reject: "+(e?.message||"unknown error")); } }
   async function approveAd(ad){ try{ await db.adminApproveAd(ad.adId); load(); }catch(e){ notify("Could not approve"); } }
   async function rejectAd(ad){ try{ await db.adminRejectAd(ad.adId); load(); }catch(e){ notify("Could not reject"); } }
 
