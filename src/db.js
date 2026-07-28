@@ -476,7 +476,9 @@ export async function getMyTransactions(userId) {
     method: t.method,
     reference: t.reference,
     fullName: t.full_name,
-    cnic: t.cnic,
+    cnicFrontPath: t.cnic_front_path,
+    cnicBackPath: t.cnic_back_path,
+    facePicPath: t.face_pic_path,
     status: t.status,
     createdAt: new Date(t.created_at).getTime(),
   }));
@@ -499,7 +501,9 @@ export async function getAllTransactions() {
     method: t.method,
     reference: t.reference,
     fullName: t.full_name,
-    cnic: t.cnic,
+    cnicFrontPath: t.cnic_front_path,
+    cnicBackPath: t.cnic_back_path,
+    facePicPath: t.face_pic_path,
     status: t.status,
     createdAt: new Date(t.created_at).getTime(),
   }));
@@ -779,24 +783,43 @@ function toStory(row) {
   };
 }
 
-// ── Verification subscription (monthly paid blue tick) ──────────────────────
-export async function requestVerification({ userId, amountPKR, coins, method, reference, fullName, cnic }) {
-  const { data, error } = await supabase
-    .from("transactions")
-    .insert({
-      user_id: userId,
-      type: "verification",
-      amount_pkr: amountPKR,
-      coins: coins || 0,
-      method,
-      reference,
-      full_name: fullName,
-      cnic,
-      status: "pending",
-    })
-    .select()
-    .single();
+// ── Verification (paid from coin balance, identity docs reviewed by admin) ──
+// Uploads go to a PRIVATE storage bucket since CNIC/face photos are sensitive.
+// We store the storage *path* (not a public URL) and generate short-lived
+// signed URLs on demand (e.g. for the admin panel) via getVerificationDocUrl.
+export async function uploadVerificationDoc(file, userId, kind) {
+  const ext = file.name.split(".").pop() || "jpg";
+  const path = `${userId}/${kind}_${Date.now()}.${ext}`;
+  const { error } = await supabase.storage.from("verification-docs").upload(path, file, {
+    cacheControl: "3600",
+    upsert: false,
+    contentType: file.type,
+  });
   if (error) throw error;
+  return path;
+}
+
+export async function getVerificationDocUrl(path) {
+  if (!path) return null;
+  const { data, error } = await supabase.storage.from("verification-docs").createSignedUrl(path, 3600);
+  if (error) return null;
+  return data.signedUrl;
+}
+
+// Deducts coins and creates the pending request atomically via RPC (server-side
+// function), so there's no manual "I've sent the payment" step or payment
+// approval — admin only reviews the identity documents themselves.
+export async function submitVerificationRequest({ fullName, cnicFrontPath, cnicBackPath, facePath }) {
+  const { data, error } = await supabase.rpc("submit_verification_request", {
+    p_full_name: fullName,
+    p_cnic_front: cnicFrontPath,
+    p_cnic_back: cnicBackPath,
+    p_face: facePath,
+  });
+  if (error) {
+    if (error.message?.includes("INSUFFICIENT_COINS")) throw new Error("INSUFFICIENT_COINS");
+    throw error;
+  }
   return data;
 }
 
@@ -813,10 +836,12 @@ export async function adminApproveVerification(userId, txId) {
   await addNotification(userId, "ki verification approve ho gayi hai — 30 din ke liye blue tick mil gaya");
 }
 
+// Refunds the coins that were charged up-front, since identity check failed.
 export async function adminRejectVerification(txId) {
-  const { error } = await supabase.from("transactions").update({ status: "rejected" }).eq("id", txId);
+  const { error } = await supabase.rpc("admin_reject_verification", { p_tx_id: txId });
   if (error) throw error;
 }
+
 
 // ── Active co-hosts + live co-host request notifications ────────────────────
 export async function getActiveCohosts(roomName) {
