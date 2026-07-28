@@ -1105,8 +1105,22 @@ function LiveDetailView({post,posts,user,onBack,fireBurst,notify,onCloseLive,ref
           }
         });
         room.on(RoomEvent.TrackUnsubscribed,(track)=>{ track.detach().forEach(el=>el.remove?.()); });
-room.on(RoomEvent.ParticipantConnected,(p)=>{ setParticipants(prev=>new Set(prev).add(p.identity)); });
-        room.on(RoomEvent.ParticipantDisconnected,(p)=>{ setParticipants(prev=>{ const s=new Set(prev); s.delete(p.identity); return s; }); });
+room.on(RoomEvent.ParticipantConnected,async(p)=>{
+          setParticipants(prev=>new Set(prev).add(p.identity));
+          try{
+            const list=await db.getActiveCohosts(post.roomName);
+            const other=list.find(c=>c.userId!==user.userId);
+            setCohostInfo(other||null); setAmCohost(list.some(c=>c.userId===user.userId));
+          }catch(e){}
+        });
+        room.on(RoomEvent.ParticipantDisconnected,async(p)=>{
+          setParticipants(prev=>{ const s=new Set(prev); s.delete(p.identity); return s; });
+          try{
+            const list=await db.getActiveCohosts(post.roomName);
+            const other=list.find(c=>c.userId!==user.userId);
+            setCohostInfo(other||null); setAmCohost(list.some(c=>c.userId===user.userId));
+          }catch(e){}
+        });
         await room.connect(LIVEKIT_URL,token);
         const seed=new Set();
         room.remoteParticipants.forEach((p)=>seed.add(p.identity));
@@ -1186,7 +1200,11 @@ room.on(RoomEvent.ParticipantConnected,(p)=>{ setParticipants(prev=>new Set(prev
     }catch(e){ notify(e?.message==="INSUFFICIENT_COINS"?"Not enough coins":"Could not send gift"); }
   }
   const viewers=new Set(comments.map(c=>c.userId)).size+1;
-  const hasGuest=[...participants].some(id=>id!==post.userId);
+  // hasGuest must reflect the actual accepted co-host, not just "someone else is
+  // connected to the room" — every viewer watching the live also connects to the
+  // LiveKit room, so using raw participants here split the screen for any 2nd
+  // viewer even with no real co-host, leaving an empty "Guest" panel.
+  const hasGuest=!!cohostInfo;
   const otherLiveUsers=(posts||[]).filter(p=>p.isLive&&p.userId!==post.userId&&p.userId!==user.userId);
 
   return (
@@ -1529,6 +1547,8 @@ function WalletView({user,notify,onRefreshUser}){
   const [busy,setBusy]=useState(false);
   const [verifyAmount,setVerifyAmount]=useState("");
   const [verifyRef,setVerifyRef]=useState("");
+  const [verifyName,setVerifyName]=useState("");
+  const [verifyCnic,setVerifyCnic]=useState("");
   const [adImage,setAdImage]=useState(null);
   const [adImagePreview,setAdImagePreview]=useState(null);
   const [adLink,setAdLink]=useState("");
@@ -1554,12 +1574,16 @@ function WalletView({user,notify,onRefreshUser}){
   }
 
   async function submitVerification(){
+    const name=verifyName.trim();
+    const cnicDigits=verifyCnic.replace(/[^0-9]/g,"");
+    if(!name){ notify("Please enter your full name (as per CNIC)"); return; }
+    if(cnicDigits.length!==13){ notify("Please enter a valid 13-digit CNIC number"); return; }
     const pkr=parseFloat(verifyAmount);
     if(!pkr||pkr<VERIFICATION_PRICE_PKR){ notify(`Verification costs Rs.${VERIFICATION_PRICE_PKR.toLocaleString()}/month`); return; }
     setBusy(true);
     try{
-      await db.requestVerification({userId:user.userId,amountPKR:pkr,method,reference:verifyRef.trim()});
-      setVerifyAmount(""); setVerifyRef(""); notify("Request sent — waiting for admin approval"); load();
+      await db.requestVerification({userId:user.userId,amountPKR:pkr,method,reference:verifyRef.trim(),fullName:name,cnic:cnicDigits});
+      setVerifyAmount(""); setVerifyRef(""); setVerifyName(""); setVerifyCnic(""); notify("Request sent — waiting for admin approval"); load();
     }catch(e){ notify("Could not send request"); } finally { setBusy(false); }
   }
 
@@ -1621,7 +1645,7 @@ function WalletView({user,notify,onRefreshUser}){
           <input value={withdrawNumber} onChange={e=>setWithdrawNumber(e.target.value)} placeholder="Your account number" style={inp}/>
           <Btn onClick={submitWithdraw} disabled={busy} style={{width:"100%"}}>Cash Out Request</Btn>
         </div>
-      ):(
+      ):tab==="verify"?(
         <div style={{display:"flex",flexDirection:"column",gap:10}}>
           <div style={{background:"#1C1233",border:"1px solid rgba(168,85,247,.35)",borderRadius:12,padding:14,display:"flex",alignItems:"center",gap:10}}>
             <Icon name="verified" size={22} color="#A855F7" fill="#A855F7" strokeWidth={0}/>
@@ -1629,6 +1653,11 @@ function WalletView({user,notify,onRefreshUser}){
               <p style={{margin:0,color:"#F4EEFF",fontWeight:700,fontSize:13}}>{user.verified?"You're verified":"Get the blue tick"}</p>
               <p style={{margin:0,color:"#9B8FC0",fontSize:11}}>{user.verified&&user.verifiedUntil?`Valid until ${new Date(user.verifiedUntil).toLocaleDateString()}`:`Rs.${VERIFICATION_PRICE_PKR}/month`}</p>
             </div>
+          </div>
+          <div style={{background:"#1C1233",border:"1px solid rgba(168,85,247,.35)",borderRadius:12,padding:14}}>
+            <p style={{color:"#F4EEFF",fontWeight:700,fontSize:12,margin:"0 0 8px"}}>Identity details (required before payment)</p>
+            <input value={verifyName} onChange={e=>setVerifyName(e.target.value)} placeholder="Full name (as per CNIC)" style={{...inp,marginBottom:8}}/>
+            <input value={verifyCnic} onChange={e=>setVerifyCnic(e.target.value)} placeholder="CNIC number (e.g. 12345-1234567-1)" style={inp}/>
           </div>
           <div style={{background:"#1C1233",border:"1px solid rgba(212,175,106,.4)",borderRadius:12,padding:14,textAlign:"center"}}>
             <p style={{color:"#9B8FC0",fontSize:11,margin:"0 0 10px"}}>Scan to pay with Easypaisa / Raast</p>
@@ -1948,6 +1977,9 @@ function AdminPanel({onExit,notify}){
             <span style={{fontSize:11,fontWeight:700,padding:"2px 8px",borderRadius:999,background:t.type==="topup"?"rgba(5,150,105,.2)":t.type==="verification"?"rgba(168,85,247,.2)":"rgba(124,58,237,.2)",color:"#F472B6"}}>{t.type==="topup"?"Top-up":t.type==="verification"?"Verification":"Withdraw"}</span>
           </div>
           <p style={{color:"#D9CCF0",fontSize:12,margin:"0 0 8px"}}>Rs.{t.amountPKR}{t.type!=="verification"?` • ${t.coins} coins`:""} • {t.method}{t.reference?` • ${t.reference}`:""}</p>
+          {t.type==="verification"&&(t.fullName||t.cnic)&&(
+            <p style={{color:"#FFD166",fontSize:12,margin:"0 0 8px",fontWeight:700}}>👤 {t.fullName||"—"} · CNIC: {t.cnic||"—"}</p>
+          )}
           <div style={{display:"flex",gap:8}}>
             {t.type==="topup"?<>
               <Btn onClick={()=>approveTopup(t)} style={{flex:1,padding:"7px",fontSize:12}}>Approve</Btn>
