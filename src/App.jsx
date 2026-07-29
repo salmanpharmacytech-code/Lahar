@@ -359,6 +359,82 @@ function GiftSheet({balance,onClose,onSend}){
   );
 }
 
+// ── Advertise Modal (self-serve, coin-based) ─────────────────────────────────
+// Used both from Profile Settings (blank — user uploads an image) and from a
+// post/reel's 3-dot menu (pre-filled with that exact media, no re-upload).
+function AdvertiseModal({post,user,notify,onClose,onDone}){
+  const [file,setFile]=useState(null);
+  const [preview,setPreview]=useState(post?.mediaData||null);
+  const [mediaType,setMediaType]=useState(post?.mediaType||"image");
+  const [link,setLink]=useState("");
+  const [caption,setCaption]=useState(post?.caption||"");
+  const [coins,setCoins]=useState("50");
+  const [busy,setBusy]=useState(false);
+  const MIN_COINS=10;
+
+  function pickFile(e){
+    const f=e.target.files?.[0]; if(!f) return;
+    const err=validateMediaFile(f,{video:true,image:true,maxMB:50});
+    if(err){ notify(err); return; }
+    setFile(f); setPreview(URL.createObjectURL(f)); setMediaType(f.type.startsWith("video")?"video":"image");
+  }
+
+  async function submit(){
+    const c=parseInt(coins,10);
+    if(!c||c<MIN_COINS){ notify(`Minimum budget is ${MIN_COINS} coins`); return; }
+    if(!post&&!file){ notify("Please choose an image or video first"); return; }
+    if(c>user.coinBalance){ notify(`You need ${c} coins — please top up first`); return; }
+    setBusy(true);
+    try{
+      let mediaUrl=post?.mediaData; let mType=mediaType;
+      if(file){ mediaUrl=await db.uploadMedia(file,user.userId); mType=file.type.startsWith("video")?"video":"image"; }
+      await db.submitAdRequest({imageUrl:mediaUrl,mediaType:mType,linkUrl:link.trim(),caption:caption.trim(),coins:c});
+      window.dispatchEvent(new CustomEvent("lehar:balance",{detail:user.coinBalance-c}));
+      notify("Submitted — waiting for admin to approve your ad");
+      onDone?.();
+    }catch(e){
+      notify(e?.message==="INSUFFICIENT_COINS"?`You need ${c} coins — please top up first`:e?.message==="MIN_COINS"?`Minimum budget is ${MIN_COINS} coins`:"Could not submit — please try again");
+    } finally { setBusy(false); }
+  }
+
+  const inp={width:"100%",background:"#120A22",border:"1px solid #2E1F4D",borderRadius:10,padding:"8px 12px",color:"#F4EEFF",fontSize:13,outline:"none",boxSizing:"border-box"};
+
+  return (
+    <div style={{position:"fixed",inset:0,zIndex:120,display:"flex",flexDirection:"column",justifyContent:"flex-end"}}>
+      <div style={{flex:1}} onClick={onClose}/>
+      <div style={{background:"#1C1233",borderTop:"1px solid #2E1F4D",borderRadius:"20px 20px 0 0",maxHeight:"85vh",overflowY:"auto"}}>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"12px 16px",borderBottom:"1px solid #2E1F4D"}}>
+          <span style={{fontWeight:700,color:"#F4EEFF",display:"flex",alignItems:"center",gap:6}}><Icon name="star" size={16} color="#FFD166"/> Advertise{post?" this post":""}</span>
+          <button onClick={onClose} style={{background:"none",border:"none",color:"#9B8FC0",cursor:"pointer"}}><Icon name="close" size={18}/></button>
+        </div>
+        <div style={{padding:14,display:"flex",flexDirection:"column",gap:10}}>
+          <p style={{color:"#9B8FC0",fontSize:11,margin:0}}>Set your budget and submit — coins are deducted right away. Admin only reviews the content before it goes live.</p>
+          {preview?(
+            <div style={{position:"relative",borderRadius:12,overflow:"hidden",background:"#000"}}>
+              {mediaType==="video"?<video src={preview} style={{width:"100%",maxHeight:180,objectFit:"contain"}} muted controls/>:<img src={preview} style={{width:"100%",maxHeight:180,objectFit:"contain"}} alt=""/>}
+              {!post&&<button onClick={()=>{setFile(null);setPreview(null);}} style={{position:"absolute",top:6,right:6,background:"rgba(0,0,0,.6)",border:"none",borderRadius:"50%",width:24,height:24,cursor:"pointer",color:"#fff",display:"flex",alignItems:"center",justifyContent:"center"}}><Icon name="close" size={13}/></button>}
+            </div>
+          ):(
+            <label style={{border:"1.5px dashed rgba(168,85,247,.4)",borderRadius:14,padding:"24px 16px",textAlign:"center",color:"#9B8FC0",cursor:"pointer",background:"rgba(168,85,247,.06)"}}>
+              <input type="file" accept="image/*,video/*" onChange={pickFile} style={{display:"none"}}/>
+              <Icon name="upload" size={24} color="#A855F7"/>
+              <div style={{marginTop:8,fontSize:12}}>Choose an image or video</div>
+            </label>
+          )}
+          <input value={link} onChange={e=>setLink(e.target.value)} placeholder="Link (optional, e.g. https://...)" style={inp}/>
+          <textarea value={caption} onChange={e=>setCaption(e.target.value)} placeholder="Caption (optional)" style={{...inp,minHeight:60,resize:"none"}}/>
+          <div>
+            <p style={{color:"#F4EEFF",fontWeight:700,fontSize:12,margin:"0 0 6px"}}>Coin budget</p>
+            <input value={coins} onChange={e=>setCoins(e.target.value)} type="number" min={MIN_COINS} placeholder={`Min ${MIN_COINS} coins`} style={inp}/>
+            <p style={{color:"#9B8FC0",fontSize:10,margin:"4px 0 0"}}>Your balance: {user.coinBalance} coins</p>
+          </div>
+          <Btn onClick={submit} disabled={busy} style={{width:"100%"}}>Submit For Review</Btn>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Post Card ─────────────────────────────────────────────────────────────────
 // ── Sponsored ad card (shown periodically in feed/reels) ─────────────────────
 function AdCard({ad}){
@@ -368,7 +444,9 @@ function AdCard({ad}){
         <span style={{background:"rgba(255,209,102,.15)",color:"#FFD166",fontSize:10,fontWeight:800,padding:"2px 8px",borderRadius:999,letterSpacing:"0.04em"}}>SPONSORED</span>
         {ad.username&&<span style={{color:"#9B8FC0",fontSize:11}}>{ad.username}</span>}
       </div>
-      <img src={ad.imageUrl} alt="" style={{width:"100%",maxHeight:340,objectFit:"cover",display:"block"}}/>
+      {ad.mediaType==="video"?
+        <video src={ad.imageUrl} style={{width:"100%",maxHeight:340,objectFit:"cover",display:"block"}} autoPlay muted loop playsInline/>
+        :<img src={ad.imageUrl} alt="" style={{width:"100%",maxHeight:340,objectFit:"cover",display:"block"}}/>}
       {(ad.caption||ad.linkUrl)&&(
         <div style={{padding:"10px 14px",display:"flex",alignItems:"center",gap:10}}>
           {ad.caption&&<p style={{flex:1,color:"#D9CCF0",fontSize:12,margin:0}}>{ad.caption}</p>}
@@ -379,10 +457,11 @@ function AdCard({ad}){
   );
 }
 
-function PostCard({post,user,onLike,onOpenComments,onOpenGift,onOpenLive,onOpenMedia,onDelete,onOpenProfile,onSetReaction}){
+function PostCard({post,user,onLike,onOpenComments,onOpenGift,onOpenLive,onOpenMedia,onDelete,onAdvertise,onOpenProfile,onSetReaction}){
   const liked=post.likes?.includes(user.userId);
   const author=post.author;
   const canDelete=post.userId===user.userId||user.isAdmin;
+  const isOwn=post.userId===user.userId;
   const [menuOpen,setMenuOpen]=useState(false);
   const [showPicker,setShowPicker]=useState(false);
   const reactions=post.reactions||[];
@@ -408,12 +487,13 @@ function PostCard({post,user,onLike,onOpenComments,onOpenGift,onOpenLive,onOpenM
           <span style={{color:"#9B8FC0",fontSize:11}}>{timeAgo(post.createdAt)} ago</span>
         </div>
         {post.isLive&&<button onClick={(e)=>{e.stopPropagation();onOpenLive(post);}} style={{background:"#E11D48",color:"#fff",border:"none",borderRadius:999,padding:"6px 12px",fontSize:11,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",gap:5}}><Icon name="live" size={13}/> Join Live</button>}
-        {canDelete&&(
+        {(canDelete||(isOwn&&post.mediaData))&&(
           <div style={{position:"relative"}} onClick={e=>e.stopPropagation()}>
             <button onClick={()=>setMenuOpen(v=>!v)} style={{background:"none",border:"none",color:"#9B8FC0",fontSize:16,cursor:"pointer",padding:4}}>⋮</button>
             {menuOpen&&(
-              <div style={{position:"absolute",right:0,top:24,background:"#120A22",border:"1px solid #2E1F4D",borderRadius:10,overflow:"hidden",zIndex:10,minWidth:120}}>
-                <button onClick={()=>{setMenuOpen(false);onDelete(post);}} style={{display:"flex",alignItems:"center",gap:6,width:"100%",padding:"10px 12px",background:"none",border:"none",color:"#FF4D6D",fontSize:12,fontWeight:600,cursor:"pointer"}}><Icon name="trash" size={14}/> Delete</button>
+              <div style={{position:"absolute",right:0,top:24,background:"#120A22",border:"1px solid #2E1F4D",borderRadius:10,overflow:"hidden",zIndex:10,minWidth:140}}>
+                {isOwn&&post.mediaData&&<button onClick={()=>{setMenuOpen(false);onAdvertise(post);}} style={{display:"flex",alignItems:"center",gap:6,width:"100%",padding:"10px 12px",background:"none",border:"none",color:"#FFD166",fontSize:12,fontWeight:600,cursor:"pointer"}}><Icon name="star" size={14} color="#FFD166"/> Advertise</button>}
+                {canDelete&&<button onClick={()=>{setMenuOpen(false);onDelete(post);}} style={{display:"flex",alignItems:"center",gap:6,width:"100%",padding:"10px 12px",background:"none",border:"none",color:"#FF4D6D",fontSize:12,fontWeight:600,cursor:"pointer"}}><Icon name="trash" size={14}/> Delete</button>}
               </div>
             )}
           </div>
@@ -626,6 +706,7 @@ function FeedView({posts,user,refreshFeed,notify,fireBurst,onOpenLive,onOpenProf
   const [giftPost,setGiftPost]=useState(null);
   const [mediaPost,setMediaPost]=useState(null);
   const [confirmDelete,setConfirmDelete]=useState(null);
+  const [advertisePost,setAdvertisePost]=useState(null);
   const [ads,setAds]=useState([]);
   const visible=posts.filter(p=>!p.isLive&&!p.isReel);
   useEffect(()=>{ db.getActiveAds().then(setAds).catch(()=>{}); },[]);
@@ -672,7 +753,7 @@ function FeedView({posts,user,refreshFeed,notify,fireBurst,onOpenLive,onOpenProf
       {visible.length===0&&<div style={{textAlign:"center",padding:"60px 0",color:"#9B8FC0"}}><div style={{marginBottom:8,display:"flex",justifyContent:"center",color:"#3A2A5C"}}><Icon name="image" size={36}/></div><p>No posts yet — tap + to post!</p></div>}
       {visible.map((post,i)=>(
         <div key={post.postId}>
-          <PostCard post={post} user={user} onLike={handleLike} onOpenComments={setCommentPost} onOpenGift={setGiftPost} onOpenLive={onOpenLive} onOpenMedia={setMediaPost} onDelete={setConfirmDelete} onOpenProfile={onOpenProfile} onSetReaction={handleSetReaction}/>
+          <PostCard post={post} user={user} onLike={handleLike} onOpenComments={setCommentPost} onOpenGift={setGiftPost} onOpenLive={onOpenLive} onOpenMedia={setMediaPost} onDelete={setConfirmDelete} onAdvertise={setAdvertisePost} onOpenProfile={onOpenProfile} onSetReaction={handleSetReaction}/>
           {ads.length>0&&(i+1)%6===0&&<AdCard ad={ads[Math.floor(i/6)%ads.length]}/>}
         </div>
       ))}
@@ -680,6 +761,7 @@ function FeedView({posts,user,refreshFeed,notify,fireBurst,onOpenLive,onOpenProf
       {giftPost&&<GiftSheet balance={user.coinBalance} onClose={()=>setGiftPost(null)} onSend={handleSendGift}/>}
       {mediaPost&&<MediaViewerModal post={mediaPost} onClose={()=>setMediaPost(null)}/>}
       {confirmDelete&&<ConfirmDialog title="Delete this post?" message="This post will be permanently deleted." onConfirm={()=>handleDelete(confirmDelete)} onCancel={()=>setConfirmDelete(null)}/>}
+      {advertisePost&&<AdvertiseModal post={advertisePost} user={user} notify={notify} onClose={()=>setAdvertisePost(null)} onDone={()=>setAdvertisePost(null)}/>}
     </div>
   );
 }
@@ -755,6 +837,8 @@ function ReelsView({posts,user,notify,refreshFeed,fireBurst}){
   const [giftPost,setGiftPost]=useState(null);
   const [showUpload,setShowUpload]=useState(false);
   const [confirmDelete,setConfirmDelete]=useState(null);
+  const [advertisePost,setAdvertisePost]=useState(null);
+  const [menuOpen,setMenuOpen]=useState(false);
   const [muted,setMuted]=useState(false); // sound ON by default — bug fix
   const [playing,setPlaying]=useState(true);
   const [duration,setDuration]=useState(0);
@@ -766,7 +850,7 @@ function ReelsView({posts,user,notify,refreshFeed,fireBurst}){
   const [ads,setAds]=useState([]);
   const [adDismissed,setAdDismissed]=useState(false);
   useEffect(()=>{ db.getActiveAds().then(setAds).catch(()=>{}); },[]);
-  useEffect(()=>{ setAdDismissed(false); },[current]);
+  useEffect(()=>{ setAdDismissed(false); setMenuOpen(false); },[current]);
   useEffect(()=>{ if(vRef.current){vRef.current.load();vRef.current.play().catch(()=>{}); setPlaying(true); setCurTime(0);} },[current]);
   function togglePlay(){
     const v=vRef.current; if(!v) return;
@@ -848,9 +932,17 @@ fireBurst({emoji:gift.emoji,name:gift.name,from:user.username,file:gift.file}); 
           <Icon name="gift" size={24} color="#FFD166"/><span style={{color:"#FFD166",fontSize:11}}>Gift</span>
         </button>
         {canDelete&&(
-          <button onClick={()=>setConfirmDelete(post)} style={{display:"flex",flexDirection:"column",alignItems:"center",background:"none",border:"none",cursor:"pointer"}}>
-            <Icon name="trash" size={22} color="#fff"/>
-          </button>
+          <div style={{position:"relative"}} onClick={e=>e.stopPropagation()}>
+            <button onClick={()=>setMenuOpen(v=>!v)} style={{display:"flex",flexDirection:"column",alignItems:"center",background:"none",border:"none",cursor:"pointer"}}>
+              <Icon name="more" size={24} color="#fff"/>
+            </button>
+            {menuOpen&&(
+              <div style={{position:"absolute",right:32,bottom:0,background:"#120A22",border:"1px solid #2E1F4D",borderRadius:10,overflow:"hidden",zIndex:10,minWidth:140}}>
+                {post.userId===user.userId&&<button onClick={()=>{setMenuOpen(false);setAdvertisePost(post);}} style={{display:"flex",alignItems:"center",gap:6,width:"100%",padding:"10px 12px",background:"none",border:"none",color:"#FFD166",fontSize:12,fontWeight:600,cursor:"pointer",whiteSpace:"nowrap"}}><Icon name="star" size={14} color="#FFD166"/> Advertise</button>}
+                <button onClick={()=>{setMenuOpen(false);setConfirmDelete(post);}} style={{display:"flex",alignItems:"center",gap:6,width:"100%",padding:"10px 12px",background:"none",border:"none",color:"#FF4D6D",fontSize:12,fontWeight:600,cursor:"pointer",whiteSpace:"nowrap"}}><Icon name="trash" size={14}/> Delete</button>
+              </div>
+            )}
+          </div>
         )}
       </div>
       <div style={{position:"absolute",bottom:80,left:12,right:60}}>
@@ -861,7 +953,9 @@ fireBurst({emoji:gift.emoji,name:gift.name,from:user.username,file:gift.file}); 
       <div style={{position:"absolute",top:10,right:10,background:"rgba(0,0,0,.4)",borderRadius:999,padding:"3px 10px",color:"#fff",fontSize:11}}>{current+1}/{reels.length}</div>
       {ads.length>0&&!adDismissed&&(current+1)%6===0&&(()=>{const ad=ads[Math.floor(current/6)%ads.length]; return (
         <div style={{position:"absolute",top:44,left:10,right:10,background:"rgba(20,10,35,.85)",border:"1px solid #FFD166",borderRadius:14,padding:10,display:"flex",alignItems:"center",gap:10,zIndex:6}}>
-          <img src={ad.imageUrl} alt="" style={{width:40,height:40,borderRadius:8,objectFit:"cover"}}/>
+          {ad.mediaType==="video"?
+            <video src={ad.imageUrl} style={{width:40,height:40,borderRadius:8,objectFit:"cover"}} muted playsInline/>
+            :<img src={ad.imageUrl} alt="" style={{width:40,height:40,borderRadius:8,objectFit:"cover"}}/>}
           <div style={{flex:1,minWidth:0}}>
             <span style={{background:"rgba(255,209,102,.2)",color:"#FFD166",fontSize:8,fontWeight:800,padding:"1px 6px",borderRadius:999}}>SPONSORED</span>
             <p style={{color:"#fff",fontSize:11,margin:"3px 0 0",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{ad.caption||ad.username}</p>
@@ -886,6 +980,7 @@ fireBurst({emoji:gift.emoji,name:gift.name,from:user.username,file:gift.file}); 
       {giftPost&&<GiftSheet balance={user.coinBalance} onClose={()=>setGiftPost(null)} onSend={handleSendGift}/>}
       {showUpload&&<ReelUploadModal user={user} notify={notify} onClose={()=>setShowUpload(false)} onDone={()=>{setShowUpload(false);refreshFeed();notify("Reel uploaded!");}}/>}
       {confirmDelete&&<ConfirmDialog title="Delete this Reel?" message="This Reel will be permanently deleted." onConfirm={()=>handleDelete(confirmDelete)} onCancel={()=>setConfirmDelete(null)}/>}
+      {advertisePost&&<AdvertiseModal post={advertisePost} user={user} notify={notify} onClose={()=>setAdvertisePost(null)} onDone={()=>setAdvertisePost(null)}/>}
     </div>
   );
 }
@@ -1546,29 +1641,8 @@ function WalletView({user,notify,onRefreshUser}){
   const [withdrawNumber,setWithdrawNumber]=useState("");
   const [myTx,setMyTx]=useState([]);
   const [busy,setBusy]=useState(false);
-  const [adImage,setAdImage]=useState(null);
-  const [adImagePreview,setAdImagePreview]=useState(null);
-  const [adLink,setAdLink]=useState("");
-  const [adCaption,setAdCaption]=useState("");
   const load=useCallback(async()=>{ try{ setMyTx(await db.getMyTransactions(user.userId)); }catch(e){} },[user.userId]);
   useEffect(()=>{ load(); const t=setInterval(load,5000); return ()=>clearInterval(t); },[load]);
-
-  function handleAdImage(e){
-    const f=e.target.files[0]; if(!f) return;
-    if(!f.type.startsWith("image")){ notify("Please upload an image only"); return; }
-    if(f.size>10*1024*1024){ notify("Image must be smaller than 10MB"); return; }
-    setAdImage(f); setAdImagePreview(URL.createObjectURL(f));
-  }
-  async function submitAd(){
-    if(!adImage){ notify("Please choose an image first"); return; }
-    setBusy(true);
-    try{
-      const url=await db.uploadMedia(adImage,user.userId);
-      await db.submitAdRequest({userId:user.userId,imageUrl:url,linkUrl:adLink.trim(),caption:adCaption.trim()});
-      setAdImage(null); setAdImagePreview(null); setAdLink(""); setAdCaption("");
-      notify("Ad submitted — waiting for admin approval");
-    }catch(e){ notify("Could not submit ad"); } finally { setBusy(false); }
-  }
 
   async function submitTopup(){
     const pkr=parseFloat(amount);
@@ -1605,7 +1679,7 @@ function WalletView({user,notify,onRefreshUser}){
         Buy: Rs.20 = 1 coin (min Rs.3,000) | Cash Out: 1 coin = Rs.12
       </div>
       <div style={{display:"flex",background:"#1C1233",borderRadius:12,padding:4,marginBottom:12,gap:4}}>
-        {["buy","withdraw","advertise"].map(t=><button key={t} onClick={()=>setTab(t)} style={{flex:1,padding:8,borderRadius:8,border:"none",fontWeight:700,fontSize:10,background:tab===t?"#F4EEFF":"transparent",color:tab===t?"#120A22":"#9B8FC0",cursor:"pointer"}}>{t==="buy"?"Buy":t==="withdraw"?"Cash Out":"Advertise"}</button>)}
+        {["buy","withdraw"].map(t=><button key={t} onClick={()=>setTab(t)} style={{flex:1,padding:8,borderRadius:8,border:"none",fontWeight:700,fontSize:10,background:tab===t?"#F4EEFF":"transparent",color:tab===t?"#120A22":"#9B8FC0",cursor:"pointer"}}>{t==="buy"?"Buy":"Cash Out"}</button>)}
       </div>
       {tab==="buy"?(
         <div style={{display:"flex",flexDirection:"column",gap:10}}>
@@ -1618,7 +1692,7 @@ function WalletView({user,notify,onRefreshUser}){
           <input value={reference} onChange={e=>setReference(e.target.value)} placeholder="Transaction ID / reference (optional)" style={inp}/>
           <Btn onClick={submitTopup} disabled={busy} style={{width:"100%"}}>I've Sent The Payment</Btn>
         </div>
-      ):tab==="withdraw"?(
+      ):(
         <div style={{display:"flex",flexDirection:"column",gap:10}}>
           <input value={withdrawCoins} onChange={e=>setWithdrawCoins(e.target.value)} type="number" placeholder="How many coins to withdraw?" style={inp}/>
           {withdrawCoins&&!isNaN(withdrawCoins)&&<p style={{color:"#FFD166",fontSize:12,fontFamily:"monospace"}}>≈ Rs. {(parseInt(withdrawCoins,10)/WITHDRAW_COINS_PER_PKR).toFixed(0)}</p>}
@@ -1627,25 +1701,6 @@ function WalletView({user,notify,onRefreshUser}){
           </div>
           <input value={withdrawNumber} onChange={e=>setWithdrawNumber(e.target.value)} placeholder="Your account number" style={inp}/>
           <Btn onClick={submitWithdraw} disabled={busy} style={{width:"100%"}}>Cash Out Request</Btn>
-        </div>
-      ):(
-        <div style={{display:"flex",flexDirection:"column",gap:10}}>
-          <p style={{color:"#9B8FC0",fontSize:11,margin:0}}>Submit your logo/banner to be shown in everyone's feed after admin approval.</p>
-          {adImagePreview?(
-            <div style={{position:"relative",borderRadius:12,overflow:"hidden",background:"#000"}}>
-              <img src={adImagePreview} style={{width:"100%",maxHeight:180,objectFit:"contain"}} alt=""/>
-              <button onClick={()=>{setAdImage(null);setAdImagePreview(null);}} style={{position:"absolute",top:6,right:6,background:"rgba(0,0,0,.6)",border:"none",borderRadius:"50%",width:24,height:24,cursor:"pointer",color:"#fff",display:"flex",alignItems:"center",justifyContent:"center"}}><Icon name="close" size={13}/></button>
-            </div>
-          ):(
-            <label style={{border:"1.5px dashed rgba(168,85,247,.4)",borderRadius:14,padding:"24px 16px",textAlign:"center",color:"#9B8FC0",cursor:"pointer",background:"rgba(168,85,247,.06)"}}>
-              <input type="file" accept="image/*" onChange={handleAdImage} style={{display:"none"}}/>
-              <Icon name="upload" size={24} color="#A855F7"/>
-              <div style={{marginTop:8,fontSize:12}}>Choose ad image</div>
-            </label>
-          )}
-          <input value={adLink} onChange={e=>setAdLink(e.target.value)} placeholder="Link (optional, e.g. https://...)" style={inp}/>
-          <textarea value={adCaption} onChange={e=>setAdCaption(e.target.value)} placeholder="Caption (optional)" style={{...inp,minHeight:70,resize:"none"}}/>
-          <Btn onClick={submitAd} disabled={busy} style={{width:"100%"}}>Submit Ad For Approval</Btn>
         </div>
       )}
       {myTx.length>0&&(
@@ -1882,6 +1937,7 @@ function ProfileView({user,onLogout,onGoWallet,notify,onUserUpdate,onOpenProfile
   const [counts,setCounts]=useState({followers:0,following:0});
   const [listModal,setListModal]=useState(null);
   const [listUsers,setListUsers]=useState([]);
+  const [showAdvertise,setShowAdvertise]=useState(false);
   const avatarRef=useRef(null);
 
   const loadPosts=useCallback(async()=>{
@@ -1958,6 +2014,11 @@ function ProfileView({user,onLogout,onGoWallet,notify,onUserUpdate,onOpenProfile
       </button>
 
       <VerifyIdentityCard user={user} notify={notify}/>
+
+      <button onClick={()=>setShowAdvertise(true)} style={{width:"100%",display:"flex",alignItems:"center",gap:8,background:"#1C1233",border:"1px solid rgba(255,209,102,.4)",borderRadius:12,padding:"12px 14px",cursor:"pointer",marginBottom:12,color:"#F4EEFF",fontSize:13,fontWeight:600}}>
+        <Icon name="star" size={16} color="#FFD166"/> Advertise
+      </button>
+      {showAdvertise&&<AdvertiseModal user={user} notify={notify} onClose={()=>setShowAdvertise(false)} onDone={()=>setShowAdvertise(false)}/>}
 
       <div style={{display:"flex",gap:16,marginBottom:10}}>
         <span style={{color:"#9B8FC0",fontSize:13}}>Posts <span style={{color:"#FFD166",fontWeight:700}}>{myMediaPosts.length}</span></span>
@@ -2041,8 +2102,8 @@ function AdminPanel({onExit,notify}){
   async function rejectWithdraw(tx){ try{ await db.adminRejectWithdraw(tx.id); load(); }catch(e){ notify("Could not reject"); } }
   async function approveVerification(tx){ try{ await db.adminApproveVerification(tx.userId,tx.id); load(); }catch(e){ notify("Could not approve: "+(e?.message||"unknown error")); } }
   async function rejectVerification(tx){ try{ await db.adminRejectVerification(tx.id); load(); }catch(e){ notify("Could not reject: "+(e?.message||"unknown error")); } }
-  async function approveAd(ad){ try{ await db.adminApproveAd(ad.adId); load(); }catch(e){ notify("Could not approve"); } }
-  async function rejectAd(ad){ try{ await db.adminRejectAd(ad.adId); load(); }catch(e){ notify("Could not reject"); } }
+  async function approveAd(ad){ try{ await db.adminApproveAd(ad.adId); load(); }catch(e){ notify("Could not approve: "+(e?.message||"unknown error")); } }
+  async function rejectAd(ad){ try{ await db.adminRejectAd(ad.adId); load(); }catch(e){ notify("Could not reject: "+(e?.message||"unknown error")); } }
 
   const pending=txs.filter(t=>t.status==="pending");
   const totalIn=txs.filter(t=>t.type==="topup"&&t.status==="approved").reduce((s,t)=>s+Number(t.amountPKR),0);
@@ -2094,8 +2155,11 @@ function AdminPanel({onExit,notify}){
       {ads.filter(a=>a.status==="pending").length===0&&<p style={{color:"#9B8FC0",fontSize:13}}>No pending ad requests</p>}
       {ads.filter(a=>a.status==="pending").map(ad=>(
         <div key={ad.adId} style={{background:"#1C1233",border:"1px solid #2E1F4D",borderRadius:12,padding:12,marginBottom:10}}>
-          <img src={ad.imageUrl} alt="" style={{width:"100%",maxHeight:140,objectFit:"cover",borderRadius:8,marginBottom:8}}/>
+          {ad.mediaType==="video"?
+            <video src={ad.imageUrl} controls style={{width:"100%",maxHeight:140,objectFit:"cover",borderRadius:8,marginBottom:8}}/>
+            :<img src={ad.imageUrl} alt="" style={{width:"100%",maxHeight:140,objectFit:"cover",borderRadius:8,marginBottom:8}}/>}
           <p style={{color:"#F4EEFF",fontSize:12,fontWeight:700,margin:"0 0 2px"}}>{ad.username}</p>
+          <p style={{color:"#FFD166",fontSize:11,margin:"0 0 4px",fontWeight:700}}>{ad.coinsSpent} coins (auto-deducted)</p>
           {ad.caption&&<p style={{color:"#D9CCF0",fontSize:11,margin:"0 0 4px"}}>{ad.caption}</p>}
           {ad.linkUrl&&<p style={{color:"#9B8FC0",fontSize:10,margin:"0 0 8px",wordBreak:"break-all"}}>{ad.linkUrl}</p>}
           <div style={{display:"flex",gap:8}}>
