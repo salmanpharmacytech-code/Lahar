@@ -904,14 +904,20 @@ export function sendBattleEvent(roomName, payload) {
   }
 }
 
-// ── Advertisements ─────────────────────────────────────────────────────────────
-export async function submitAdRequest({ userId, imageUrl, linkUrl, caption }) {
-  const { data, error } = await supabase
-    .from("advertisements")
-    .insert({ user_id: userId, image_url: imageUrl, link_url: linkUrl || "", caption: caption || "" })
-    .select()
-    .single();
-  if (error) throw error;
+// ── Advertisements (self-serve: user picks coin budget, admin only reviews content) ─
+export async function submitAdRequest({ imageUrl, mediaType, linkUrl, caption, coins }) {
+  const { data, error } = await supabase.rpc("submit_ad_request", {
+    p_image_url: imageUrl,
+    p_media_type: mediaType || "image",
+    p_link_url: linkUrl || "",
+    p_caption: caption || "",
+    p_coins: coins,
+  });
+  if (error) {
+    if (error.message?.includes("INSUFFICIENT_COINS")) throw new Error("INSUFFICIENT_COINS");
+    if (error.message?.includes("MIN_COINS")) throw new Error("MIN_COINS");
+    throw error;
+  }
   return data;
 }
 
@@ -935,12 +941,12 @@ export async function getAllAds() {
 }
 
 export async function adminApproveAd(adId) {
-  const { error } = await supabase.from("advertisements").update({ status: "approved" }).eq("ad_id", adId);
+  const { error } = await supabase.rpc("admin_approve_ad", { p_ad_id: adId });
   if (error) throw error;
 }
 
 export async function adminRejectAd(adId) {
-  const { error } = await supabase.from("advertisements").update({ status: "rejected" }).eq("ad_id", adId);
+  const { error } = await supabase.rpc("admin_reject_ad", { p_ad_id: adId });
   if (error) throw error;
 }
 
@@ -950,8 +956,10 @@ function toAd(row) {
     userId: row.user_id,
     username: row.profiles?.username,
     imageUrl: row.image_url,
+    mediaType: row.media_type || "image",
     linkUrl: row.link_url,
     caption: row.caption,
+    coinsSpent: row.coins_spent || 0,
     status: row.status,
     createdAt: new Date(row.created_at).getTime(),
   };
