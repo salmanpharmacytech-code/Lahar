@@ -5,9 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Lehar</title>
     <script src="https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js"></script>
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#120A22">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
   </head>
   <body style="margin:0;background:#0a0a0a;">
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
+    <script>
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", () => navigator.serviceWorker.register("/sw.js"));
+      }
+    </script>
   </body>
 </html>
